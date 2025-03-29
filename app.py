@@ -1,7 +1,7 @@
 import sqlite3
 import click
 import requests
-from flask import Flask, render_template, request, redirect, url_for, g, flash
+from flask import Flask, render_template, request, redirect, url_for, g, flash, jsonify, make_response, get_flashed_messages
 from datetime import date, datetime
 
 DATABASE = 'tasks.db'
@@ -112,7 +112,9 @@ def add_task():
     flash('Task added successfully!', 'success')
 
     # Return the updated task list partial for HTMX
-    return get_tasks()
+    response = make_response(get_tasks())
+    response.headers['HX-Trigger'] = 'showFlash'
+    return response
 
 
 @app.route('/toggle/<int:task_id>', methods=['POST'])
@@ -124,11 +126,15 @@ def toggle_task(task_id):
         new_status = not task['completed']
         db.execute('UPDATE tasks SET completed = ? WHERE id = ?', (new_status, task_id))
         db.commit()
+        status_text = "completed" if new_status else "marked as pending"
+        flash(f'Task {status_text}.', 'success')
     else:
         flash('Task not found.', 'error')
 
     # Return the updated task list partial for HTMX
-    return get_tasks()
+    response = make_response(get_tasks())
+    response.headers['HX-Trigger'] = 'showFlash'
+    return response
 
 
 @app.route('/delete/<int:task_id>', methods=['DELETE'])
@@ -139,9 +145,9 @@ def delete_task(task_id):
     flash('Task deleted.', 'info')
 
     # Return the updated task list partial for HTMX
-    # Or return an empty response with status 200 OK if the target handles removal
-    # return '', 200
-    return get_tasks() # Easiest for now, redraws the whole list
+    response = make_response(get_tasks())
+    response.headers['HX-Trigger'] = 'showFlash'
+    return response
 
 
 @app.route('/notify/<int:task_id>', methods=['POST'])
@@ -191,9 +197,19 @@ def notify_task(task_id):
     except Exception as e:
         flash(f'Error sending notification: {str(e)}', 'error')
     
-    # Return an empty response with status 200 OK
-    # We use hx-swap="none" in the button, so no content needs to be returned
-    return '', 200
+    # Return a response with HX-Trigger to show flash messages
+    response = make_response('', 200)
+    response.headers['HX-Trigger'] = 'showFlash'
+    return response
+
+
+@app.route('/flash-messages', methods=['GET'])
+def get_flashed_messages_json():
+    """Endpoint to fetch flash messages for HTMX."""
+    messages = []
+    for category, message in get_flashed_messages(with_categories=True):
+        messages.append({'category': category, 'message': message})
+    return render_template('_flash_messages.html', messages=messages)
 
 
 if __name__ == '__main__':

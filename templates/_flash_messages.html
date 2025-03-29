@@ -1,0 +1,10 @@
+{# templates/_flash_messages.html #}
+{% with messages = messages %}
+  {% if messages %}
+    <ul class="flash-messages">
+    {% for message in messages %}
+      <li class="{{ message.category }}">{{ message.message }}</li>
+    {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}

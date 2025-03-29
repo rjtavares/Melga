@@ -268,15 +268,17 @@
             </header>
 
             <!-- Flash Messages -->
-            {% with messages = get_flashed_messages(with_categories=true) %}
-              {% if messages %}
-                <ul class="flash-messages">
-                {% for category, message in messages %}
-                  <li class="{{ category }}">{{ message }}</li>
-                {% endfor %}
-                </ul>
-              {% endif %}
-            {% endwith %}
+            <div id="flash-messages-container">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                  {% if messages %}
+                    <ul class="flash-messages">
+                    {% for category, message in messages %}
+                      <li class="{{ category }}">{{ message }}</li>
+                    {% endfor %}
+                    </ul>
+                  {% endif %}
+                {% endwith %}
+            </div>
 
             <!-- Add Task Form -->
             <form class="add-task-form"
@@ -320,6 +322,12 @@
                 form.reset(); // Reset the form fields
             }
           }
+        });
+        
+        // Handle flash messages via HTMX events
+        document.body.addEventListener('showFlash', function(evt) {
+            // Fetch and display flash messages
+            htmx.ajax('GET', '/flash-messages', {target: '#flash-messages-container'});
         });
     </script>
 </body>
