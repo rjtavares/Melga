@@ -18,6 +18,12 @@
                     hx-swap="innerHTML">
                 {{ 'Undo' if task.completed else '✓' }}
             </button>
+            <button class="btn notify-btn"
+                    hx-post="/notify/{{ task.id }}"
+                    hx-swap="none"
+                    title="Send notification">
+                📱
+            </button>
             <button class="btn delete-btn"
                     hx-delete="/delete/{{ task.id }}"
                     hx-target="#task-list-container" 

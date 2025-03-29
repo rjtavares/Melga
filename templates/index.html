@@ -13,6 +13,8 @@
             --secondary: #6c757d;
             --secondary-hover: #5a6268;
             --warning: #ff4d4d;
+            --info: #17a2b8;
+            --info-hover: #138496;
         }
         
         body {
@@ -126,6 +128,17 @@
         
         .toggle-btn:hover {
             background-color: var(--primary-hover);
+            transform: scale(1.05);
+        }
+        
+        .notify-btn {
+            background-color: var(--info);
+            color: white;
+            border: none;
+        }
+        
+        .notify-btn:hover {
+            background-color: var(--info-hover);
             transform: scale(1.05);
         }
         

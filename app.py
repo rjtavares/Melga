@@ -1,5 +1,6 @@
 import sqlite3
 import click
+import requests
 from flask import Flask, render_template, request, redirect, url_for, g, flash
 from datetime import date, datetime
 
@@ -141,6 +142,58 @@ def delete_task(task_id):
     # Or return an empty response with status 200 OK if the target handles removal
     # return '', 200
     return get_tasks() # Easiest for now, redraws the whole list
+
+
+@app.route('/notify/<int:task_id>', methods=['POST'])
+def notify_task(task_id):
+    """Send a notification about the task to ntfy."""
+    NTFY_TOPIC = "alertas_para_tlm_do_ricardinho"
+    NTFY_URL = f"https://ntfy.sh/{NTFY_TOPIC}"
+    
+    db = get_db()
+    cursor = db.execute('SELECT description, due_date, completed FROM tasks WHERE id = ?', (task_id,))
+    task = cursor.fetchone()
+    
+    if not task:
+        flash('Task not found.', 'error')
+        return '', 400  # Bad request
+    
+    # Format the due date for display
+    try:
+        due_date_obj = datetime.strptime(task['due_date'], '%Y-%m-%d').date()
+        due_date_display = due_date_obj.strftime('%d/%m/%Y')
+    except (ValueError, TypeError):
+        due_date_display = "Invalid Date"
+    
+    # Prepare notification content
+    status = "COMPLETED" if task['completed'] else "PENDING"
+    title = f"Task: {task['description']}"
+    message = f"Due: {due_date_display}\nStatus: {status}"
+    priority = "high" if not task['completed'] and due_date_obj < date.today() else "default"
+    
+    # Send notification to ntfy
+    try:
+        response = requests.post(
+            NTFY_URL,
+            data=message,
+            headers={
+                "Title": title,
+                "Priority": priority,
+                "Tags": "calendar,phone",
+            }
+        )
+        
+        if response.status_code == 200:
+            flash('Notification sent successfully!', 'success')
+        else:
+            flash(f'Failed to send notification. Status code: {response.status_code}', 'error')
+            
+    except Exception as e:
+        flash(f'Error sending notification: {str(e)}', 'error')
+    
+    # Return an empty response with status 200 OK
+    # We use hx-swap="none" in the button, so no content needs to be returned
+    return '', 200
 
 
 if __name__ == '__main__':
