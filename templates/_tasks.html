@@ -6,7 +6,7 @@
             {{ task.description }}
         </div>
         <div class="due-date {% if task.is_overdue %}overdue{% endif %}">
-            Due: {{ task.due_date }}
+            Due: {{ task.due_date_display }}
             {% if task.is_overdue %}
                 <span> (OVERDUE!)</span>
             {% endif %}

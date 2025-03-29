@@ -44,8 +44,15 @@ def index():
     today = date.today()
     for task in tasks_raw:
         task_dict = dict(task) # Convert Row object to dict
-        task_dict['due_date_obj'] = datetime.strptime(task['due_date'], '%Y-%m-%d').date()
-        task_dict['is_overdue'] = not task['completed'] and task_dict['due_date_obj'] < today
+        try:
+            # Parse DB date (YYYY-MM-DD)
+            due_date_obj = datetime.strptime(task['due_date'], '%Y-%m-%d').date()
+            # Format for display (DD/MM/YYYY)
+            task_dict['due_date_display'] = due_date_obj.strftime('%d/%m/%Y')
+            task_dict['is_overdue'] = not task['completed'] and due_date_obj < today
+        except (ValueError, TypeError):
+            task_dict['due_date_display'] = "Invalid Date"
+            task_dict['is_overdue'] = False
         tasks.append(task_dict)
 
     return render_template('index.html', tasks=tasks, today=today)
@@ -65,12 +72,14 @@ def get_tasks():
     for task in tasks_raw:
         task_dict = dict(task) # Convert Row object to dict
         try:
-            task_dict['due_date_obj'] = datetime.strptime(task['due_date'], '%Y-%m-%d').date()
-            task_dict['is_overdue'] = not task['completed'] and task_dict['due_date_obj'] < today
+            # Parse DB date (YYYY-MM-DD)
+            due_date_obj = datetime.strptime(task['due_date'], '%Y-%m-%d').date()
+            # Format for display (DD/MM/YYYY)
+            task_dict['due_date_display'] = due_date_obj.strftime('%d/%m/%Y')
+            task_dict['is_overdue'] = not task['completed'] and due_date_obj < today
         except (ValueError, TypeError):
-             # Handle cases where due_date might be invalid or None temporarily
-             task_dict['due_date_obj'] = None
-             task_dict['is_overdue'] = False
+            task_dict['due_date_display'] = "Invalid Date"
+            task_dict['is_overdue'] = False
         tasks.append(task_dict)
 
     # Render only the task list part
@@ -80,24 +89,24 @@ def get_tasks():
 @app.route('/add', methods=['POST'])
 def add_task():
     description = request.form['description']
-    due_date_str = request.form['due_date']
+    due_date_str_input = request.form['due_date'] # Input is DD/MM/YYYY
 
-    if not description or not due_date_str:
+    if not description or not due_date_str_input:
         flash('Description and Due Date are required!', 'error')
-        # In a full HTMX response, we might return an error partial
-        # For simplicity now, redirecting back to main page or returning the full task list
-        return redirect(url_for('index')) # Or return get_tasks() if target is just the list
+        return get_tasks() # Return updated list even on error to show flash
 
     try:
-        # Ensure date is in YYYY-MM-DD format for SQLite
-        datetime.strptime(due_date_str, '%Y-%m-%d')
+        # Parse the input date (DD/MM/YYYY)
+        due_date_obj = datetime.strptime(due_date_str_input, '%d/%m/%Y').date()
+        # Convert to YYYY-MM-DD for storage
+        due_date_db_format = due_date_obj.strftime('%Y-%m-%d')
     except ValueError:
-        flash('Invalid date format. Please use YYYY-MM-DD.', 'error')
-        return redirect(url_for('index')) # Or return get_tasks()
+        flash('Invalid date format. Please use DD/MM/YYYY.', 'error')
+        return get_tasks() # Return updated list to show flash
 
     db = get_db()
     db.execute('INSERT INTO tasks (description, due_date) VALUES (?, ?)',
-               (description, due_date_str))
+               (description, due_date_db_format))
     db.commit()
     flash('Task added successfully!', 'success')
 
@@ -142,4 +151,4 @@ if __name__ == '__main__':
     #     print("Database not found, initializing...")
     #     init_db()
 
-    app.run(debug=True) # debug=True for development
+    app.run(debug=True, port=5001) # debug=True for development
