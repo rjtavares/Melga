@@ -201,20 +201,31 @@ def notify_task(task_id):
     return response
 
 
-@app.route('/snooze/<int:task_id>', methods=['POST'])
-def snooze_task(task_id):
+@app.route('/snooze/<int:task_id>/<int:days>', methods=['POST'])
+def snooze_task(task_id, days):
     db = get_db()
     cursor = db.execute('SELECT id FROM tasks WHERE id = ?', (task_id,))
     task = cursor.fetchone()
 
     if task:
+        # Validate days input
+        if days not in [1, 3, 7]:
+            flash('Invalid snooze duration.', 'error')
+            response = make_response(get_tasks())
+            response.headers['HX-Trigger'] = 'showFlash'
+            return response
+            
         today = date.today()
-        new_due_date = today + timedelta(days=3)
+        new_due_date = today + timedelta(days=days)
         new_due_date_str = new_due_date.strftime('%Y-%m-%d')
 
         db.execute('UPDATE tasks SET due_date = ? WHERE id = ?', (new_due_date_str, task_id))
         db.commit()
-        flash(f'Task snoozed until {new_due_date.strftime("%d/%m/%Y")}.', 'success')
+        
+        # Create a more descriptive message
+        day_str = "day" if days == 1 else "days"
+        week_str = " (1 week)" if days == 7 else ""
+        flash(f'Task snoozed for {days} {day_str}{week_str} until {new_due_date.strftime("%d/%m/%Y")}.', 'success')
     else:
         flash('Task not found.', 'error')
 
