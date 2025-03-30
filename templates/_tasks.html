@@ -24,6 +24,13 @@
                     title="Send notification">
                 📱
             </button>
+            <button class="btn snooze-btn"
+                    hx-post="/snooze/{{ task.id }}"
+                    hx-target="#task-list-container"
+                    hx-swap="innerHTML"
+                    title="Snooze (3 days)">
+                ⏰
+            </button>
             <button class="btn delete-btn"
                     hx-delete="/delete/{{ task.id }}"
                     hx-target="#task-list-container" 

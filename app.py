@@ -1,8 +1,8 @@
 import sqlite3
 import click
 import requests
-from flask import Flask, render_template, request, redirect, url_for, g, flash, jsonify, make_response, get_flashed_messages
-from datetime import date, datetime
+from flask import Flask, render_template, request, g, make_response, get_flashed_messages, flash
+from datetime import date, datetime, timedelta
 
 DATABASE = 'tasks.db'
 
@@ -90,19 +90,17 @@ def get_tasks():
 @app.route('/add', methods=['POST'])
 def add_task():
     description = request.form['description']
-    due_date_str_input = request.form['due_date'] # Input is DD/MM/YYYY
+    due_date_str_input = request.form['due_date'] # Input is YYYY-MM-DD from HTML date input
 
     if not description or not due_date_str_input:
         flash('Description and Due Date are required!', 'error')
         return get_tasks() # Return updated list even on error to show flash
 
     try:
-        # Parse the input date (DD/MM/YYYY)
-        due_date_obj = datetime.strptime(due_date_str_input, '%d/%m/%Y').date()
-        # Convert to YYYY-MM-DD for storage
-        due_date_db_format = due_date_obj.strftime('%Y-%m-%d')
+        # Parse the input date (YYYY-MM-DD)
+        due_date_db_format = datetime.strptime(due_date_str_input, '%Y-%m-%d').date()
     except ValueError:
-        flash('Invalid date format. Please use DD/MM/YYYY.', 'error')
+        flash('Invalid date format.', 'error')
         return get_tasks() # Return updated list to show flash
 
     db = get_db()
@@ -199,6 +197,29 @@ def notify_task(task_id):
     
     # Return a response with HX-Trigger to show flash messages
     response = make_response('', 200)
+    response.headers['HX-Trigger'] = 'showFlash'
+    return response
+
+
+@app.route('/snooze/<int:task_id>', methods=['POST'])
+def snooze_task(task_id):
+    db = get_db()
+    cursor = db.execute('SELECT id FROM tasks WHERE id = ?', (task_id,))
+    task = cursor.fetchone()
+
+    if task:
+        today = date.today()
+        new_due_date = today + timedelta(days=3)
+        new_due_date_str = new_due_date.strftime('%Y-%m-%d')
+
+        db.execute('UPDATE tasks SET due_date = ? WHERE id = ?', (new_due_date_str, task_id))
+        db.commit()
+        flash(f'Task snoozed until {new_due_date.strftime("%d/%m/%Y")}.', 'success')
+    else:
+        flash('Task not found.', 'error')
+
+    # Return the updated task list partial for HTMX
+    response = make_response(get_tasks())
     response.headers['HX-Trigger'] = 'showFlash'
     return response
 
