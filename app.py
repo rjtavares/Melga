@@ -278,8 +278,6 @@ def add_task_action(task_id):
     )
     db.commit()
     
-    flash('Action added successfully!', 'success')
-    
     # Get updated actions list
     cursor = db.execute(
         'SELECT id, action_description, action_date FROM task_actions WHERE task_id = ? ORDER BY action_date DESC',
@@ -301,9 +299,7 @@ def add_task_action(task_id):
         actions.append(action_dict)
     
     # Return the updated actions list partial
-    response = make_response(render_template('_actions.html', actions=actions))
-    response.headers['HX-Trigger'] = 'showFlash'
-    return response
+    return render_template('_actions.html', actions=actions)
 
 
 @app.route('/snooze/<int:task_id>/<int:days>', methods=['POST'])
