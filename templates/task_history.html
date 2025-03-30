@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task History</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <style>
+        :root {
+            --primary: #007bff;
+            --primary-hover: #0056b3;
+            --secondary: #6c757d;
+            --secondary-hover: #5a6268;
+            --warning: #ff4d4d;
+            --info: #17a2b8;
+            --info-hover: #138496;
+            --yellow: #e0a800;
+            --yellow-hover: rgb(181, 136, 0);
+        }
+        
+        body {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0.5rem;
+        }
+        
+        main.container {
+            padding: 0;
+        }
+        
+        article {
+            margin: 0;
+            padding: 0.5rem;
+        }
+        
+        h1 {
+            text-align: center;
+            margin: 0.2rem 0;
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 1.5rem;
+        }
+
+        h2 {
+            font-size: 1.2rem;
+            margin: 0.2rem 0;
+            color: var(--secondary);
+        }
+        
+        .task-details {
+            background-color: var(--card-background-color);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            border-left: 3px solid var(--primary);
+        }
+
+        .task-details.completed {
+            border-left-color: var(--secondary);
+        }
+
+        .task-details .due-date {
+            font-size: 0.9rem;
+            color: var(--muted-color);
+            margin-top: 0.2rem;
+        }
+
+        .task-details .overdue {
+            font-weight: bold;
+            color: #fff;
+            background-color: var(--warning);
+            padding: 0.2rem 0.5rem;
+            border-radius: 0.25rem;
+            display: inline-block;
+        }
+
+        .action-list {
+            list-style: none;
+            padding: 0;
+            margin: 0.2rem 0;
+        }
+
+        .action-item {
+            background-color: var(--card-background-color);
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .action-description {
+            flex-grow: 1;
+        }
+
+        .action-date {
+            font-size: 0.85rem;
+            color: var(--muted-color);
+        }
+
+        .add-action-form {
+            margin: 1rem 0;
+            padding: 0.75rem;
+            background: var(--card-background-color);
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 0.5rem;
+            align-items: end;
+        }
+
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+                gap: 0.25rem;
+            }
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 1rem;
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .flash-messages {
+            list-style: none;
+            padding: 0;
+            margin: 0.5rem 0;
+        }
+        
+        .flash-messages li {
+            padding: 0.4rem 0.6rem;
+            margin-bottom: 0.4rem;
+            border-radius: 0.5rem;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .flash-messages .success {
+            background-color: var(--form-element-valid-focus-color);
+            color: var(--form-element-valid-active-border-color);
+        }
+        
+        .flash-messages .error {
+            background-color: var(--form-element-invalid-focus-color);
+            color: var(--form-element-invalid-active-border-color);
+        }
+        
+        .flash-messages .info {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .htmx-indicator {
+            opacity: 0;
+            transition: opacity 200ms ease-in;
+        }
+        .htmx-request .htmx-indicator {
+            opacity: 1;
+        }
+        .htmx-request.htmx-indicator {
+            opacity: 1;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            text-align: center;
+            color: var(--muted-color);
+            background-color: transparent !important;
+            box-shadow: none !important;
+            border: 1px dashed rgba(0,0,0,0.1);
+            border-radius: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <article>
+            <a href="/" class="back-link">← Back to Task List</a>
+            
+            <header>
+                <h1>Task History</h1>
+            </header>
+
+            <!-- Flash Messages -->
+            <div id="flash-messages-container">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                  {% if messages %}
+                    <ul class="flash-messages">
+                    {% for category, message in messages %}
+                      <li class="{{ category }}">{{ message }}</li>
+                    {% endfor %}
+                    </ul>
+                  {% endif %}
+                {% endwith %}
+            </div>
+
+            <!-- Task Details -->
+            <div class="task-details {% if task.completed %}completed{% endif %}">
+                <h2>{{ task.description }}</h2>
+                <div class="due-date {% if task.is_overdue %}overdue{% endif %}">
+                    Due: {{ task.due_date_display }}
+                    {% if task.is_overdue %}
+                        <span> (OVERDUE!)</span>
+                    {% endif %}
+                </div>
+                <div class="status">
+                    Status: {{ "Completed" if task.completed else "Pending" }}
+                </div>
+            </div>
+
+            <!-- Actions List -->
+            <h2>Task Actions</h2>
+            <div id="actions-container">
+                {% if actions %}
+                    <ul class="action-list">
+                        {% for action in actions %}
+                            <li class="action-item">
+                                <div class="action-description">{{ action.action_description }}</div>
+                                <div class="action-date">{{ action.action_date_display }}</div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <div class="empty-state">
+                        <p>No actions recorded for this task yet.</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Add Action Form -->
+            <form class="add-action-form"
+                  hx-post="/task/{{ task.id }}/add-action"
+                  hx-target="#actions-container"
+                  hx-swap="innerHTML"
+                  hx-indicator="#add-action-spinner">
+                <div class="form-grid">
+                    <div>
+                        <label for="action_description">New Action:</label>
+                        <input type="text" id="action_description" name="action_description" required>
+                    </div>
+                    <div>
+                        <button type="submit" class="primary">Add Action</button>
+                    </div>
+                </div>
+                <span id="add-action-spinner" class="htmx-indicator">Adding...</span>
+            </form>
+        </article>
+    </main>
+
+    <script>
+        // Handle flash messages via HTMX events
+        document.body.addEventListener('showFlash', function(evt) {
+            // Fetch and display flash messages
+            htmx.ajax('GET', '/flash-messages', {target: '#flash-messages-container'});
+        });
+
+        // Optional: Clear form after successful HTMX post
+        document.body.addEventListener('htmx:afterSwap', function(evt) {
+            // Check if the swap was triggered by the add action form
+            if (evt.detail.elt.id === 'actions-container' && evt.detail.requestConfig.verb === 'post') {
+                const form = document.querySelector('.add-action-form');
+                if(form) {
+                    form.reset(); // Reset the form fields
+                }
+            }
+        });
+    </script>
+</body>
+</html>

@@ -201,6 +201,111 @@ def notify_task(task_id):
     return response
 
 
+# --- Task History Routes ---
+
+@app.route('/task/<int:task_id>')
+def task_history(task_id):
+    """Show task history page with all actions for a specific task."""
+    db = get_db()
+    
+    # Get task details
+    cursor = db.execute('SELECT id, description, due_date, completed FROM tasks WHERE id = ?', (task_id,))
+    task = cursor.fetchone()
+    
+    if not task:
+        flash('Task not found.', 'error')
+        return render_template('index.html')
+    
+    # Format task data
+    task_dict = dict(task)
+    today = date.today()
+    try:
+        # Parse DB date (YYYY-MM-DD)
+        due_date_obj = datetime.strptime(task['due_date'], '%Y-%m-%d').date()
+        # Format for display (DD/MM/YYYY)
+        task_dict['due_date_display'] = due_date_obj.strftime('%d/%m/%Y')
+        task_dict['is_overdue'] = not task['completed'] and due_date_obj < today
+    except (ValueError, TypeError):
+        task_dict['due_date_display'] = "Invalid Date"
+        task_dict['is_overdue'] = False
+    
+    # Get task actions
+    cursor = db.execute(
+        'SELECT id, action_description, action_date FROM task_actions WHERE task_id = ? ORDER BY action_date DESC',
+        (task_id,)
+    )
+    actions_raw = cursor.fetchall()
+    
+    # Format actions data
+    actions = []
+    for action in actions_raw:
+        action_dict = dict(action)
+        try:
+            # Parse DB date (YYYY-MM-DD)
+            action_date_obj = datetime.strptime(action['action_date'], '%Y-%m-%d').date()
+            # Format for display (DD/MM/YYYY)
+            action_dict['action_date_display'] = action_date_obj.strftime('%d/%m/%Y')
+        except (ValueError, TypeError):
+            action_dict['action_date_display'] = "Invalid Date"
+        actions.append(action_dict)
+    
+    return render_template('task_history.html', task=task_dict, actions=actions)
+
+
+@app.route('/task/<int:task_id>/add-action', methods=['POST'])
+def add_task_action(task_id):
+    """Add a new action to a task."""
+    action_description = request.form.get('action_description')
+    
+    if not action_description:
+        flash('Action description is required!', 'error')
+        return '', 400
+    
+    # Verify task exists
+    db = get_db()
+    cursor = db.execute('SELECT id FROM tasks WHERE id = ?', (task_id,))
+    task = cursor.fetchone()
+    
+    if not task:
+        flash('Task not found.', 'error')
+        return '', 404
+    
+    # Add the action
+    today = date.today().strftime('%Y-%m-%d')
+    db.execute(
+        'INSERT INTO task_actions (task_id, action_description, action_date) VALUES (?, ?, ?)',
+        (task_id, action_description, today)
+    )
+    db.commit()
+    
+    flash('Action added successfully!', 'success')
+    
+    # Get updated actions list
+    cursor = db.execute(
+        'SELECT id, action_description, action_date FROM task_actions WHERE task_id = ? ORDER BY action_date DESC',
+        (task_id,)
+    )
+    actions_raw = cursor.fetchall()
+    
+    # Format actions data
+    actions = []
+    for action in actions_raw:
+        action_dict = dict(action)
+        try:
+            # Parse DB date (YYYY-MM-DD)
+            action_date_obj = datetime.strptime(action['action_date'], '%Y-%m-%d').date()
+            # Format for display (DD/MM/YYYY)
+            action_dict['action_date_display'] = action_date_obj.strftime('%d/%m/%Y')
+        except (ValueError, TypeError):
+            action_dict['action_date_display'] = "Invalid Date"
+        actions.append(action_dict)
+    
+    # Return the updated actions list partial
+    response = make_response(render_template('_actions.html', actions=actions))
+    response.headers['HX-Trigger'] = 'showFlash'
+    return response
+
+
 @app.route('/snooze/<int:task_id>/<int:days>', methods=['POST'])
 def snooze_task(task_id, days):
     db = get_db()
@@ -235,13 +340,12 @@ def snooze_task(task_id, days):
     return response
 
 
-@app.route('/flash-messages', methods=['GET'])
-def get_flashed_messages_json():
-    """Endpoint to fetch flash messages for HTMX."""
-    messages = []
-    for category, message in get_flashed_messages(with_categories=True):
-        messages.append({'category': category, 'message': message})
-    return render_template('_flash_messages.html', messages=messages)
+@app.route('/flash-messages')
+def get_flash_messages():
+    """Endpoint to fetch flash messages for HTMX updates."""
+    messages = get_flashed_messages(with_categories=True)
+    messages_dicts = [{"category": category, "message": message} for category, message in messages]
+    return render_template('_flash_messages.html', messages=messages_dicts)
 
 
 if __name__ == '__main__':

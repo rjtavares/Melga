@@ -1,0 +1,15 @@
+{# templates/_actions.html #}
+{% if actions %}
+    <ul class="action-list">
+        {% for action in actions %}
+            <li class="action-item">
+                <div class="action-description">{{ action.action_description }}</div>
+                <div class="action-date">{{ action.action_date_display }}</div>
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <div class="empty-state">
+        <p>No actions recorded for this task yet.</p>
+    </div>
+{% endif %}
