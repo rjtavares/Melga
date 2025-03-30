@@ -174,6 +174,40 @@
             transform: scale(1.05);
         }
         
+        .snooze-container {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .snooze-toggle {
+            background-color: var(--info);
+            color: white;
+            border: none;
+        }
+        
+        .snooze-toggle:hover {
+            background-color: var(--info-hover);
+            transform: scale(1.05);
+        }
+        
+        .snooze-group {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background-color: var(--card-background-color);
+            border-radius: 0.25rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            padding: 0.3rem;
+            z-index: 100;
+            flex-direction: column;
+            gap: 0.2rem;
+        }
+        
+        .snooze-group.show {
+            display: flex;
+        }
+        
         .add-task-form {
             margin: 0.5rem 0;
             padding: 0.75rem;
@@ -350,6 +384,36 @@
             // Fetch and display flash messages
             htmx.ajax('GET', '/flash-messages', {target: '#flash-messages-container'});
         });
+        
+        // Function to toggle snooze options
+        function toggleSnoozeOptions(button) {
+            // Find the snooze group within the same container
+            const snoozeGroup = button.nextElementSibling;
+            
+            // Close all other open snooze groups first
+            document.querySelectorAll('.snooze-group.show').forEach(group => {
+                if (group !== snoozeGroup) {
+                    group.classList.remove('show');
+                }
+            });
+            
+            // Toggle the current snooze group
+            snoozeGroup.classList.toggle('show');
+            
+            // Add a click event listener to the document to close the menu when clicking outside
+            setTimeout(() => {
+                const clickHandler = function(event) {
+                    if (!snoozeGroup.contains(event.target) && event.target !== button) {
+                        snoozeGroup.classList.remove('show');
+                        document.removeEventListener('click', clickHandler);
+                    }
+                };
+                
+                if (snoozeGroup.classList.contains('show')) {
+                    document.addEventListener('click', clickHandler);
+                }
+            }, 0);
+        }
     </script>
 </body>
 </html>

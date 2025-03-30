@@ -24,28 +24,35 @@
                     title="Send notification">
                 📱
             </button>
-            <div class="snooze-group">
-                <button class="btn snooze-btn"
-                        hx-post="/snooze/{{ task.id }}/1"
-                        hx-target="#task-list-container"
-                        hx-swap="innerHTML"
-                        title="Snooze for 1 day">
-                    1d
+            <div class="snooze-container">
+                <button class="btn snooze-toggle" 
+                        onclick="toggleSnoozeOptions(this)"
+                        title="Snooze options">
+                    ⏰
                 </button>
-                <button class="btn snooze-btn"
-                        hx-post="/snooze/{{ task.id }}/3"
-                        hx-target="#task-list-container"
-                        hx-swap="innerHTML"
-                        title="Snooze for 3 days">
-                    3d
-                </button>
-                <button class="btn snooze-btn"
-                        hx-post="/snooze/{{ task.id }}/7"
-                        hx-target="#task-list-container"
-                        hx-swap="innerHTML"
-                        title="Snooze for 1 week">
-                    1w
-                </button>
+                <div class="snooze-group">
+                    <button class="btn snooze-btn"
+                            hx-post="/snooze/{{ task.id }}/1"
+                            hx-target="#task-list-container"
+                            hx-swap="innerHTML"
+                            title="Snooze for 1 day">
+                        1d
+                    </button>
+                    <button class="btn snooze-btn"
+                            hx-post="/snooze/{{ task.id }}/3"
+                            hx-target="#task-list-container"
+                            hx-swap="innerHTML"
+                            title="Snooze for 3 days">
+                        3d
+                    </button>
+                    <button class="btn snooze-btn"
+                            hx-post="/snooze/{{ task.id }}/7"
+                            hx-target="#task-list-container"
+                            hx-swap="innerHTML"
+                            title="Snooze for 1 week">
+                        1w
+                    </button>
+                </div>
             </div>
             <button class="btn delete-btn"
                     hx-delete="/delete/{{ task.id }}"
