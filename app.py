@@ -344,6 +344,48 @@ def get_flash_messages():
     return render_template('_flash_messages.html', messages=messages_dicts)
 
 
+@app.route('/task/action/<int:action_id>/delete', methods=['DELETE'])
+def delete_action(action_id):
+    """Delete a specific action from a task."""
+    db = get_db()
+    
+    # First, get the task_id to return to the correct task after deletion
+    cursor = db.execute('SELECT task_id FROM task_actions WHERE id = ?', (action_id,))
+    action = cursor.fetchone()
+    
+    if not action:
+        return render_template('_actions.html', actions=[]), 404
+    
+    task_id = action['task_id']
+    
+    # Delete the action
+    db.execute('DELETE FROM task_actions WHERE id = ?', (action_id,))
+    db.commit()
+    
+    # Get updated actions list
+    cursor = db.execute(
+        'SELECT id, action_description, action_date FROM task_actions WHERE task_id = ? ORDER BY action_date DESC',
+        (task_id,)
+    )
+    actions_raw = cursor.fetchall()
+    
+    # Format actions data
+    actions = []
+    for action in actions_raw:
+        action_dict = dict(action)
+        try:
+            # Parse DB date (YYYY-MM-DD)
+            action_date_obj = datetime.strptime(action['action_date'], '%Y-%m-%d').date()
+            # Format for display (DD/MM/YYYY)
+            action_dict['action_date_display'] = action_date_obj.strftime('%d/%m/%Y')
+        except (ValueError, TypeError):
+            action_dict['action_date_display'] = "Invalid Date"
+        actions.append(action_dict)
+    
+    # Return the updated actions list partial
+    return render_template('_actions.html', actions=actions)
+
+
 if __name__ == '__main__':
     # Ensure the db is initialized if it doesn't exist (optional, good for dev)
     # try:
