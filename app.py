@@ -305,7 +305,7 @@ def add_task_action(task_id):
 @app.route('/snooze/<int:task_id>/<int:days>', methods=['POST'])
 def snooze_task(task_id, days):
     db = get_db()
-    cursor = db.execute('SELECT id FROM tasks WHERE id = ?', (task_id,))
+    cursor = db.execute('SELECT id, due_date FROM tasks WHERE id = ?', (task_id,))
     task = cursor.fetchone()
 
     if task:
@@ -316,8 +316,17 @@ def snooze_task(task_id, days):
             response.headers['HX-Trigger'] = 'showFlash'
             return response
             
-        today = date.today()
-        new_due_date = today + timedelta(days=days)
+        # Get current due date or use today if no due date exists
+        current_due_date = date.today()
+        if task['due_date']:
+            try:
+                current_due_date = date.fromisoformat(task['due_date'])
+            except ValueError:
+                # If due date is invalid, fall back to today
+                pass
+                
+        # Add days to the current due date
+        new_due_date = current_due_date + timedelta(days=days)
         new_due_date_str = new_due_date.strftime('%Y-%m-%d')
 
         db.execute('UPDATE tasks SET due_date = ? WHERE id = ?', (new_due_date_str, task_id))
