@@ -327,6 +327,66 @@
         .htmx-request.htmx-indicator {
             opacity: 1;
         }
+        
+        /* Modal styles */
+        #modal-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            visibility: hidden;
+            opacity: 0;
+            transition: visibility 0s, opacity 0.2s linear;
+        }
+        
+        #modal-container.show {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        .modal-content {
+            background-color: var(--card-background-color);
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 90%;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1.2rem;
+            color: var(--primary);
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
     </style>
 </head>
 <body>
@@ -381,6 +441,9 @@
         </article>
     </main>
 
+    <!-- Modal Container -->
+    <div id="modal-container"></div>
+
     <script>
         // Optional: Clear form after successful HTMX post
         document.body.addEventListener('htmx:afterSwap', function(evt) {
@@ -398,6 +461,33 @@
             // Fetch and display flash messages
             htmx.ajax('GET', '/flash-messages', {target: '#flash-messages-container'});
         });
+        
+        // Handle modal events
+        document.body.addEventListener('htmx:afterSwap', function(evt) {
+            // Check if modal content was loaded
+            if (evt.detail.target.id === 'modal-container' && evt.detail.target.innerHTML.trim() !== '') {
+                document.getElementById('modal-container').classList.add('show');
+            }
+        });
+        
+        // Close modal when clicking outside content
+        document.getElementById('modal-container').addEventListener('click', function(evt) {
+            if (evt.target === this) {
+                closeModal();
+            }
+        });
+        
+        // Function to close modal
+        function closeModal() {
+            const modal = document.getElementById('modal-container');
+            modal.classList.remove('show');
+            // Optional: Clear modal content after animation
+            setTimeout(() => {
+                if (!modal.classList.contains('show')) {
+                    modal.innerHTML = '';
+                }
+            }, 300);
+        }
         
         // Function to toggle snooze options
         function toggleSnoozeOptions(button) {

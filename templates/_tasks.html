@@ -32,22 +32,22 @@
                 </button>
                 <div class="snooze-group">
                     <button class="btn snooze-btn"
-                            hx-post="/snooze/{{ task.id }}/1"
-                            hx-target="#task-list-container"
+                            hx-get="/snooze-modal/{{ task.id }}/1"
+                            hx-target="#modal-container"
                             hx-swap="innerHTML"
                             title="Snooze for 1 day">
                         1d
                     </button>
                     <button class="btn snooze-btn"
-                            hx-post="/snooze/{{ task.id }}/3"
-                            hx-target="#task-list-container"
+                            hx-get="/snooze-modal/{{ task.id }}/3"
+                            hx-target="#modal-container"
                             hx-swap="innerHTML"
                             title="Snooze for 3 days">
                         3d
                     </button>
                     <button class="btn snooze-btn"
-                            hx-post="/snooze/{{ task.id }}/7"
-                            hx-target="#task-list-container"
+                            hx-get="/snooze-modal/{{ task.id }}/7"
+                            hx-target="#modal-container"
                             hx-swap="innerHTML"
                             title="Snooze for 1 week">
                         1w

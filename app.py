@@ -302,8 +302,35 @@ def add_task_action(task_id):
     return render_template('_actions.html', actions=actions)
 
 
+@app.route('/snooze-modal/<int:task_id>/<int:days>', methods=['GET'])
+def snooze_modal(task_id, days):
+    """Show a modal dialog to enter action before snoozing a task."""
+    # Validate days input
+    if days not in [1, 3, 7]:
+        flash('Invalid snooze duration.', 'error')
+        return '', 400
+    
+    # Format text for display
+    day_str = "day" if days == 1 else "days"
+    days_text = f"{days} {day_str}"
+    if days == 7:
+        days_text += " (1 week)"
+    
+    return render_template('_snooze_modal.html', task_id=task_id, days=days, days_text=days_text)
+
+
 @app.route('/snooze/<int:task_id>/<int:days>', methods=['POST'])
 def snooze_task(task_id, days):
+    """Snooze a task and add an action entry explaining why."""
+    action_description = request.form.get('action_description')
+    
+    # Don't allow snoozing without an action description
+    if not action_description:
+        flash('Action description is required to snooze a task.', 'error')
+        response = make_response(get_tasks())
+        response.headers['HX-Trigger'] = 'showFlash'
+        return response
+    
     db = get_db()
     cursor = db.execute('SELECT id, due_date FROM tasks WHERE id = ?', (task_id,))
     task = cursor.fetchone()
@@ -330,10 +357,20 @@ def snooze_task(task_id, days):
         new_due_date_str = new_due_date.strftime('%Y-%m-%d')
 
         db.execute('UPDATE tasks SET due_date = ? WHERE id = ?', (new_due_date_str, task_id))
+        
+        # Add an action entry for the snooze
+        today = date.today().strftime('%Y-%m-%d')
+        day_str = "day" if days == 1 else "days"
+        snooze_note = f"Snoozed for {days} {day_str} until {new_due_date.strftime('%d/%m/%Y')}"
+        
+        db.execute(
+            'INSERT INTO task_actions (task_id, action_description, action_date) VALUES (?, ?, ?)',
+            (task_id, f"{action_description} ({snooze_note})", today)
+        )
+        
         db.commit()
         
         # Create a more descriptive message
-        day_str = "day" if days == 1 else "days"
         week_str = " (1 week)" if days == 7 else ""
         flash(f'Task snoozed for {days} {day_str}{week_str} until {new_due_date.strftime("%d/%m/%Y")}.', 'success')
     else:
