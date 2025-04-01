@@ -360,12 +360,10 @@ def snooze_task(task_id, days):
         
         # Add an action entry for the snooze
         today = date.today().strftime('%Y-%m-%d')
-        day_str = "day" if days == 1 else "days"
-        snooze_note = f"Snoozed for {days} {day_str} until {new_due_date.strftime('%d/%m/%Y')}"
         
         db.execute(
             'INSERT INTO task_actions (task_id, action_description, action_date) VALUES (?, ?, ?)',
-            (task_id, f"{action_description} ({snooze_note})", today)
+            (task_id, action_description, today)
         )
         
         db.commit()
