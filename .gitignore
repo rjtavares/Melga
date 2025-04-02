@@ -2,3 +2,4 @@ tasks.db
 __pycache__
 .env
 todo.txt
+launch_melga.bat

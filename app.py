@@ -1,13 +1,14 @@
 import sqlite3
 import click
 import requests
+import os
 from flask import Flask, render_template, request, g, make_response, get_flashed_messages, flash
 from datetime import date, datetime, timedelta
 
-DATABASE = 'tasks.db'
+DATABASE = os.environ.get('DATABASE', 'tasks.db')
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your secret key' # Important for flashing messages
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your secret key') # Important for flashing messages
 
 def get_db():
     db = getattr(g, '_database', None)
@@ -151,8 +152,9 @@ def delete_task(task_id):
 @app.route('/notify/<int:task_id>', methods=['POST'])
 def notify_task(task_id):
     """Send a notification about the task to ntfy."""
-    NTFY_TOPIC = "alertas_para_tlm_do_ricardinho"
-    NTFY_URL = f"https://ntfy.sh/{NTFY_TOPIC}"
+    NTFY_TOPIC = os.environ.get('NTFY_TOPIC', "alertas_para_tlm_do_ricardinho")
+    NTFY_URL = os.environ.get('NTFY_URL', f"https://ntfy.sh/{NTFY_TOPIC}")
+    NTFY_TAGS = os.environ.get('NTFY_TAGS', "calendar,phone")
     
     db = get_db()
     cursor = db.execute('SELECT description, due_date, completed FROM tasks WHERE id = ?', (task_id,))
@@ -183,7 +185,7 @@ def notify_task(task_id):
             headers={
                 "Title": title,
                 "Priority": priority,
-                "Tags": "calendar,phone",
+                "Tags": NTFY_TAGS,
             }
         )
         
@@ -481,4 +483,8 @@ if __name__ == '__main__':
     #     print("Database not found, initializing...")
     #     init_db()
 
-    app.run(debug=True, port=5001) # debug=True for development
+    # Use environment variable for PORT if available (for deployment platforms)
+    import os
+    port = int(os.environ.get('PORT', 5001))
+    debug = os.environ.get('FLASK_DEBUG', 'True').lower() == 'true'
+    app.run(debug=debug, host='0.0.0.0', port=port)
