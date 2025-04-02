@@ -24,6 +24,13 @@
                     title="Send notification">
                 📱
             </button>
+            <button class="btn reset-date-btn"
+                    hx-post="/reset-date/{{ task.id }}"
+                    hx-target="#task-list-container"
+                    hx-swap="innerHTML"
+                    title="Reset due date to today">
+                📅
+            </button>
             <div class="snooze-container">
                 <button class="btn snooze-toggle" 
                         onclick="toggleSnoozeOptions(this)"

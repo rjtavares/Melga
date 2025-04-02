@@ -430,6 +430,38 @@ def delete_action(action_id):
     return render_template('_actions.html', actions=actions)
 
 
+@app.route('/reset-date/<int:task_id>', methods=['POST'])
+def reset_date(task_id):
+    """Reset the due date of a task to today."""
+    db = get_db()
+    cursor = db.execute('SELECT id, description FROM tasks WHERE id = ?', (task_id,))
+    task = cursor.fetchone()
+
+    if task:
+        # Set due date to today
+        today = date.today()
+        today_str = today.strftime('%Y-%m-%d')
+        
+        # Update the task
+        db.execute('UPDATE tasks SET due_date = ? WHERE id = ?', (today_str, task_id))
+        
+        # Add an action entry for resetting the date
+        db.execute(
+            'INSERT INTO task_actions (task_id, action_description, action_date) VALUES (?, ?, ?)',
+            (task_id, f"Reset due date to today ({today.strftime('%d/%m/%Y')})", today_str)
+        )
+        
+        db.commit()
+        flash(f'Due date for task reset to today ({today.strftime("%d/%m/%Y")}).', 'success')
+    else:
+        flash('Task not found.', 'error')
+
+    # Return the updated task list partial for HTMX
+    response = make_response(get_tasks())
+    response.headers['HX-Trigger'] = 'showFlash'
+    return response
+
+
 if __name__ == '__main__':
     # Ensure the db is initialized if it doesn't exist (optional, good for dev)
     # try:
