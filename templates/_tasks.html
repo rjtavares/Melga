@@ -24,6 +24,7 @@
                     title="Send notification">
                 📱
             </button>
+            {% if not task.is_overdue %}
             <button class="btn reset-date-btn"
                     hx-post="/reset-date/{{ task.id }}"
                     hx-target="#task-list-container"
@@ -31,6 +32,7 @@
                     title="Reset due date to today">
                 📅
             </button>
+            {% endif %}
             <div class="snooze-container">
                 <button class="btn snooze-toggle" 
                         onclick="toggleSnoozeOptions(this)"

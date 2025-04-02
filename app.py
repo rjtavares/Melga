@@ -434,13 +434,24 @@ def delete_action(action_id):
 def reset_date(task_id):
     """Reset the due date of a task to today."""
     db = get_db()
-    cursor = db.execute('SELECT id, description FROM tasks WHERE id = ?', (task_id,))
+    cursor = db.execute('SELECT id, description, due_date FROM tasks WHERE id = ?', (task_id,))
     task = cursor.fetchone()
 
     if task:
-        # Set due date to today
+        # Check if task is overdue
         today = date.today()
         today_str = today.strftime('%Y-%m-%d')
+        
+        try:
+            due_date = date.fromisoformat(task['due_date'])
+            if due_date < today:
+                flash('Cannot reset date for overdue tasks.', 'error')
+                response = make_response(get_tasks())
+                response.headers['HX-Trigger'] = 'showFlash'
+                return response
+        except (ValueError, TypeError):
+            # If date format is invalid, proceed with reset
+            pass
         
         # Update the task
         db.execute('UPDATE tasks SET due_date = ? WHERE id = ?', (today_str, task_id))
