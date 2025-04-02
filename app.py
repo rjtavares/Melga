@@ -459,7 +459,7 @@ def reset_date(task_id):
         # Add an action entry for resetting the date
         db.execute(
             'INSERT INTO task_actions (task_id, action_description, action_date) VALUES (?, ?, ?)',
-            (task_id, f"Reset due date to today ({today.strftime('%d/%m/%Y')})", today_str)
+            (task_id, "Reset due date to today", today_str)
         )
         
         db.commit()
