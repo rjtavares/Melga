@@ -3,3 +3,4 @@ __pycache__
 .env
 todo.txt
 launch_melga.bat
+add_next_action_column.py
