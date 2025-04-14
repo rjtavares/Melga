@@ -1,0 +1,49 @@
+<div id="next-action-section" class="next-action-container">
+    <h5>Next Action</h5>
+    <form hx-post="/task/{{ task.id }}/next_action"
+          hx-target="#next-action-section"
+          hx-swap="outerHTML"
+          hx-indicator="#next-action-spinner">
+        <div class="form-grid-next-action">
+            <input type="text" 
+                   name="next_action" 
+                   value="{{ task.next_action if task.next_action else '' }}" 
+                   placeholder="Enter next planned action...">
+            <button type="submit" class="secondary">Save Next Action</button>
+        </div>
+        <span id="next-action-spinner" class="htmx-indicator">Saving...</span>
+    </form>
+</div>
+
+<style>
+.next-action-container {
+    background-color: var(--card-background-color);
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    border-left: 3px solid var(--info);
+}
+
+.next-action-container h5 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    color: var(--info);
+}
+
+.form-grid-next-action {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.form-grid-next-action input[type="text"] {
+    margin-bottom: 0; /* Override default Pico margin */
+}
+
+.form-grid-next-action button {
+    margin-bottom: 0; /* Align button vertically */
+}
+
+</style>

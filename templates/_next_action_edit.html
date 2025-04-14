@@ -1,0 +1,63 @@
+<div id="next-action-section" class="next-action-container edit-mode">
+    <form hx-post="/task/{{ task.id }}/next_action"
+          hx-target="#next-action-section"
+          hx-swap="outerHTML"
+          hx-indicator="#next-action-spinner">
+        <div class="form-grid-next-action">
+            <textarea name="next_action" 
+                      placeholder="Enter next planned action..." 
+                      rows="1" 
+                      autofocus>{{ task.next_action if task.next_action else '' }}</textarea>
+            <div class="button-group">
+                <button type="submit" class="primary">Save</button>
+                <button type="button" 
+                        class="secondary outline" 
+                        hx-get="/task/{{ task.id }}/view_next_action" 
+                        hx-target="#next-action-section"
+                        hx-swap="outerHTML">Cancel</button>
+            </div>
+        </div>
+        <span id="next-action-spinner" class="htmx-indicator">Saving...</span>
+    </form>
+</div>
+
+<!-- Keep styles consistent with _next_action_view.html -->
+<style>
+.next-action-container {
+    background-color: var(--card-background-color);
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    border-left: 3px solid var(--primary); /* Use primary color in edit mode */
+}
+
+.next-action-container h5 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    color: var(--primary);
+}
+
+.form-grid-next-action {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.5rem;
+    align-items: end; /* Align buttons to the bottom */
+}
+
+.form-grid-next-action textarea {
+    margin-bottom: 0; /* Override default Pico margin */
+    resize: vertical; /* Allow vertical resizing */
+}
+
+.form-grid-next-action .button-group {
+    display: flex;
+    flex-direction: row; /* Stack buttons horizontally */
+    gap: 0.5rem; /* Increase gap slightly for horizontal layout */
+}
+
+.form-grid-next-action button {
+    margin-bottom: 0; /* Align buttons */
+}
+
+</style>

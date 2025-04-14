@@ -250,8 +250,11 @@
                         <span class="due-date {% if task.is_overdue %}overdue{% endif %}">Due: {{ task.due_date_display }}{% if task.is_overdue %} (OVERDUE!){% endif %}</span> | 
                         <span class="status">Status: {{ "Completed" if task.completed else "Pending" }}</span>
                     </div>
+                    <!-- Next Action Section -->
+                    {% include '_next_action_view.html' %}
                 </div>
             </header>
+
 
             <!-- Actions List -->
             <div id="actions-container">

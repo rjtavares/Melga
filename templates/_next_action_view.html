@@ -1,0 +1,43 @@
+<div id="next-action-section" class="next-action-container view-mode"
+     hx-get="/task/{{ task.id }}/edit_next_action"
+     hx-target="#next-action-section"
+     hx-swap="outerHTML"
+     style="cursor: pointer;" title="Click to edit next action">
+    <strong>Next Action: </strong><span class="next-action-text">{{ task.next_action if task.next_action else '' }}</span>
+</div>
+
+<!-- Keep styles consistent with _next_action_edit.html -->
+<style>
+.next-action-container {
+    background-color: var(--card-background-color);
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    border-left: 3px solid var(--info);
+    transition: background-color 0.2s ease;
+}
+
+.next-action-container.view-mode:hover {
+    background-color: #e9ecef; /* Subtle hover effect */
+}
+
+.next-action-container h5 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    color: var(--info);
+}
+
+.next-action-text {
+    margin-bottom: 0; /* Remove default paragraph margin */
+    min-height: 1.5em; /* Ensure clickable area even if empty */
+    white-space: pre-wrap; /* Preserve line breaks if any */
+    word-break: break-word;
+}
+
+.next-action-text:empty::before {
+    content: 'Click to set next action...';
+    color: var(--muted-color);
+    font-style: italic;
+}
+</style>

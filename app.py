@@ -1,21 +1,13 @@
-import sqlite3
 import click
-import requests
-import os
 from flask import Flask, render_template, request, g, make_response, get_flashed_messages, flash
 from datetime import date, datetime, timedelta
+import notifications  # Import the entire module instead of specific function
+from db import get_db, get_task
+from dotenv import load_dotenv
+import os
 
-DATABASE = os.environ.get('DATABASE', 'tasks.db')
-
+load_dotenv()
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your secret key') # Important for flashing messages
-
-def get_db():
-    db = getattr(g, '_database', None)
-    if db is None:
-        db = g._database = sqlite3.connect(DATABASE)
-        db.row_factory = sqlite3.Row # Return rows as dictionary-like objects
-    return db
 
 @app.teardown_appcontext
 def close_connection(exception):
@@ -152,47 +144,20 @@ def delete_task(task_id):
 @app.route('/notify/<int:task_id>', methods=['POST'])
 def notify_task(task_id):
     """Send a notification about the task to ntfy."""
-    NTFY_TOPIC = os.environ.get('NTFY_TOPIC', "alertas_para_tlm_do_ricardinho")
-    NTFY_URL = os.environ.get('NTFY_URL', f"https://ntfy.sh/{NTFY_TOPIC}")
-    NTFY_TAGS = os.environ.get('NTFY_TAGS', "calendar,phone")
-    
-    db = get_db()
-    cursor = db.execute('SELECT description, due_date, completed FROM tasks WHERE id = ?', (task_id,))
-    task = cursor.fetchone()
+    task = get_task(task_id)
     
     if not task:
         flash('Task not found.', 'error')
         return '', 400  # Bad request
     
-    # Format the due date for display
     try:
-        due_date_obj = datetime.strptime(task['due_date'], '%Y-%m-%d').date()
-        due_date_display = due_date_obj.strftime('%d/%m/%Y')
-    except (ValueError, TypeError):
-        due_date_display = "Invalid Date"
-    
-    # Prepare notification content
-    status = "COMPLETED" if task['completed'] else "PENDING"
-    title = f"Task: {task['description']}"
-    message = f"Due: {due_date_display}\nStatus: {status}"
-    priority = "high" if not task['completed'] and due_date_obj < date.today() else "default"
-    
-    # Send notification to ntfy
-    try:
-        response = requests.post(
-            NTFY_URL,
-            data=message,
-            headers={
-                "Title": title,
-                "Priority": priority,
-                "Tags": NTFY_TAGS,
-            }
-        )
-        
-        if response.status_code == 200:
+        status_code = notifications.send_notification(task)  # Use the module reference
+        if status_code == 200:
             flash('Notification sent successfully!', 'success')
+        elif isinstance(status_code, str):
+            flash(f'Failed to send notification. {status_code}', 'error')
         else:
-            flash(f'Failed to send notification. Status code: {response.status_code}', 'error')
+            flash(f'Failed to send notification. Status code: {status_code}', 'error')
             
     except Exception as e:
         flash(f'Error sending notification: {str(e)}', 'error')
@@ -209,49 +174,100 @@ def notify_task(task_id):
 def task_history(task_id):
     """Show task history page with all actions for a specific task."""
     db = get_db()
-    
-    # Get task details
-    cursor = db.execute('SELECT id, description, due_date, completed FROM tasks WHERE id = ?', (task_id,))
-    task = cursor.fetchone()
-    
+    task = get_task(task_id) # get_task now fetches next_action too
+
     if not task:
         flash('Task not found.', 'error')
-        return render_template('index.html')
-    
-    # Format task data
+        # Consider redirecting to index or showing a dedicated error page
+        # For now, rendering index template with empty tasks as a fallback
+        cursor = db.execute('SELECT id, description, due_date, completed FROM tasks ORDER BY due_date ASC')
+        tasks_raw = cursor.fetchall()
+        tasks = []
+        today = date.today()
+        for t in tasks_raw:
+            task_dict_item = dict(t)
+            try:
+                due_date_obj = datetime.strptime(t['due_date'], '%Y-%m-%d').date()
+                task_dict_item['due_date_display'] = due_date_obj.strftime('%d/%m/%Y')
+                task_dict_item['is_overdue'] = not t['completed'] and due_date_obj < today
+            except (ValueError, TypeError):
+                task_dict_item['due_date_display'] = "Invalid Date"
+                task_dict_item['is_overdue'] = False
+            tasks.append(task_dict_item)
+        response = make_response(render_template('index.html', tasks=tasks, today=today))
+        response.headers['HX-Trigger'] = 'showFlash' # Trigger flash display if needed
+        return response
+
+    # Convert the task Row object to a dictionary to pass to the template
+    # This dictionary will include 'id', 'description', 'due_date', 'completed', 'last_notification', 'next_action'
     task_dict = dict(task)
-    today = date.today()
-    try:
-        # Parse DB date (YYYY-MM-DD)
-        due_date_obj = datetime.strptime(task['due_date'], '%Y-%m-%d').date()
-        # Format for display (DD/MM/YYYY)
-        task_dict['due_date_display'] = due_date_obj.strftime('%d/%m/%Y')
-        task_dict['is_overdue'] = not task['completed'] and due_date_obj < today
-    except (ValueError, TypeError):
-        task_dict['due_date_display'] = "Invalid Date"
-        task_dict['is_overdue'] = False
-    
-    # Get task actions
+
+    # Fetch actions for the task
     cursor = db.execute(
         'SELECT id, action_description, action_date FROM task_actions WHERE task_id = ? ORDER BY action_date DESC',
         (task_id,)
     )
     actions_raw = cursor.fetchall()
-    
+
     # Format actions data
     actions = []
     for action in actions_raw:
         action_dict = dict(action)
         try:
-            # Parse DB date (YYYY-MM-DD)
             action_date_obj = datetime.strptime(action['action_date'], '%Y-%m-%d').date()
-            # Format for display (DD/MM/YYYY)
             action_dict['action_date_display'] = action_date_obj.strftime('%d/%m/%Y')
         except (ValueError, TypeError):
             action_dict['action_date_display'] = "Invalid Date"
         actions.append(action_dict)
-    
+
+    # Render the task history template with task details and actions
     return render_template('task_history.html', task=task_dict, actions=actions)
+
+
+@app.route('/task/<int:task_id>/next_action', methods=['POST'])
+def update_next_action(task_id):
+    """Update the next_action for a specific task."""
+    next_action_text = request.form.get('next_action', '').strip()
+    db = get_db()
+    try:
+        db.execute('UPDATE tasks SET next_action = ? WHERE id = ?', (next_action_text, task_id))
+        db.commit()
+        # Fetch the updated task data to pass to the partial
+        updated_task = get_task(task_id)
+        if updated_task:
+             # Return the VIEW partial to replace the edit form after saving
+             return render_template('_next_action_view.html', task=dict(updated_task))
+        else:
+             # Handle case where task might have been deleted in the meantime
+             return "Task not found", 404
+    except Exception as e:
+        db.rollback() # Rollback in case of error
+        flash(f'Error updating next action: {str(e)}', 'error')
+        # Return an error response, potentially triggering flash message display
+        response = make_response("Error updating next action", 500)
+        response.headers['HX-Trigger'] = 'showFlash'
+        return response
+
+
+@app.route('/task/<int:task_id>/edit_next_action', methods=['GET'])
+def get_edit_next_action_form(task_id):
+    """Serve the partial template containing the form to edit next_action."""
+    task = get_task(task_id)
+    if task:
+        return render_template('_next_action_edit.html', task=dict(task))
+    else:
+        # Optionally return an error snippet or handle appropriately
+        return "Task not found", 404
+
+
+@app.route('/task/<int:task_id>/view_next_action', methods=['GET'])
+def get_view_next_action(task_id):
+    """Serve the partial template for viewing next_action."""
+    task = get_task(task_id)
+    if task:
+        return render_template('_next_action_view.html', task=dict(task))
+    else:
+        return "Task not found", 404
 
 
 @app.route('/task/<int:task_id>/add-action', methods=['POST'])
@@ -323,8 +339,9 @@ def snooze_modal(task_id, days):
 
 @app.route('/snooze/<int:task_id>/<int:days>', methods=['POST'])
 def snooze_task(task_id, days):
-    """Snooze a task and add an action entry explaining why."""
+    """Snooze a task, add an action entry, and optionally update next action."""
     action_description = request.form.get('action_description')
+    next_action_text = request.form.get('next_action', '').strip() # Get optional next action
     
     # Don't allow snoozing without an action description
     if not action_description:
@@ -360,8 +377,14 @@ def snooze_task(task_id, days):
 
         db.execute('UPDATE tasks SET due_date = ? WHERE id = ?', (new_due_date_str, task_id))
         
+        # Update next action if provided
+        if next_action_text:
+             db.execute('UPDATE tasks SET next_action = ? WHERE id = ?', (next_action_text, task_id))
+
         # Add an action entry for the snooze
         today = date.today().strftime('%Y-%m-%d')
+        # Determine day string for flash message
+        day_str = "day" if days == 1 else "days"
         
         db.execute(
             'INSERT INTO task_actions (task_id, action_description, action_date) VALUES (?, ?, ?)',
@@ -476,15 +499,5 @@ def reset_date(task_id):
 
 
 if __name__ == '__main__':
-    # Ensure the db is initialized if it doesn't exist (optional, good for dev)
-    # try:
-    #     with open(DATABASE): pass
-    # except IOError:
-    #     print("Database not found, initializing...")
-    #     init_db()
-
-    # Use environment variable for PORT if available (for deployment platforms)
-    import os
-    port = int(os.environ.get('PORT', 5001))
-    debug = os.environ.get('FLASK_DEBUG', 'True').lower() == 'true'
-    app.run(debug=debug, host='0.0.0.0', port=port)
+    debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true' # <-- Change this line
+    app.run(debug=debug_mode, port=5001) # debug=True for development

@@ -1,0 +1,39 @@
+from flask import g
+import sqlite3
+from datetime import date
+
+DATABASE = 'tasks.db'
+
+def get_db(flask=True):
+    if flask:
+        db = getattr(g, '_database', None)
+        if db is None:
+            db = g._database = sqlite3.connect(DATABASE)
+            db.row_factory = sqlite3.Row # Return rows as dictionary-like objects
+        return db
+    else:
+        db = sqlite3.connect(DATABASE)
+        db.row_factory = sqlite3.Row
+        return db
+
+def get_task(task_id, flask=True):
+    db = get_db(flask=True)
+    cursor = db.execute('SELECT id, description, due_date, completed, last_notification, next_action FROM tasks WHERE id = ?', (task_id,))
+    task = cursor.fetchone()
+    return task
+
+def get_overdue_tasks():
+    db = get_db(flask=False)
+    cursor = db.execute('SELECT id, description, due_date, completed, last_notification, next_action FROM tasks WHERE completed = 0 AND due_date < CURRENT_DATE')
+    tasks = cursor.fetchall()
+    return tasks
+
+def set_last_notification(task, notification_date=None):
+    """
+    Sets last_notification for a task to provided date (or today is None is given)
+    """
+    today = date.today()
+    
+    db = get_db(flask=False)
+    db.execute('UPDATE tasks SET last_notification = ? WHERE id = ?', (notification_date or today, task['id']))
+    db.commit()
