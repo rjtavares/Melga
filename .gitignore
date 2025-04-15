@@ -4,4 +4,5 @@ __pycache__
 todo.txt
 launch_melga.bat
 add_next_action_column.py
+schema_update.py
 *.zip
