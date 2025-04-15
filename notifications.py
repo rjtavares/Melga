@@ -57,6 +57,8 @@ def notify_overdue():
         status = send_notification(task)
         if status == 200:
             notifications_sent += 1
+        else:
+            print(f"Failed to send notification for task {task['id']}")
     return len(overdue_tasks), notifications_sent
 
 def main():
