@@ -479,6 +479,45 @@
             margin-bottom: 0.25rem;
             font-weight: normal;
         }
+        
+        /* Responsive styles for activity graph */
+        @media (max-width: 768px) {
+            .activity-graph {
+                padding: 0.5rem;
+                gap: 1px;
+            }
+            
+            .activity-day {
+                max-width: 16px;
+            }
+            
+            .activity-box {
+                height: 12px;
+            }
+            
+            .activity-day-label {
+                display: none; /* Hide date labels on smaller screens */
+            }
+            
+            .activity-weekday {
+                font-size: 0.5rem;
+                height: 10px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .activity-day {
+                max-width: 10px;
+            }
+            
+            .activity-box {
+                height: 10px;
+            }
+            
+            .activity-weekday {
+                font-size: 0.4rem;
+            }
+        }
     </style>
 </head>
 <body>
