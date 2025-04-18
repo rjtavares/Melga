@@ -1,8 +1,8 @@
 import click
-from flask import Flask, render_template, request, g, make_response, get_flashed_messages, flash
+from flask import Flask, render_template, request, g, make_response, get_flashed_messages, flash, json
 from datetime import date, datetime, timedelta
 import notifications  # Import the entire module instead of specific function
-from db import get_db, get_task
+from db import get_db, get_task, get_activity_data
 from dotenv import load_dotenv
 import os
 
@@ -49,8 +49,29 @@ def index():
             task_dict['due_date_display'] = "Invalid Date"
             task_dict['is_overdue'] = False
         tasks.append(task_dict)
+    
+    # Get activity data for the GitHub-style activity graph
+    activity_data = get_activity_data()
+    
+    # Get the last 14 days as a list for display
+    last_14_days = []
+    for i in range(14):
+        day = today - timedelta(days=13-i)
+        day_str = day.strftime('%Y-%m-%d')
+        # Format the date for display
+        day_display = day.strftime('%d/%m')
+        # Create activity info
+        day_info = {
+            'date': day_str,
+            'display': day_display,
+            'actions': activity_data[day_str]['actions'],
+            'completions': activity_data[day_str]['completions'],
+            'weekday': day.strftime('%a')[:1],  # First letter of weekday
+            'is_today': day == today
+        }
+        last_14_days.append(day_info)
 
-    return render_template('index.html', tasks=tasks, today=today)
+    return render_template('index.html', tasks=tasks, today=today, activity_data=last_14_days)
 
 
 # --- HTMX Routes ---
@@ -77,6 +98,38 @@ def get_tasks():
             task_dict['is_overdue'] = False
         tasks.append(task_dict)
 
+    # Get activity data for the GitHub-style activity graph
+    activity_data = get_activity_data()
+    
+    # Get the last 14 days as a list for display
+    last_14_days = []
+    for i in range(14):
+        day = today - timedelta(days=13-i)
+        day_str = day.strftime('%Y-%m-%d')
+        # Format the date for display
+        day_display = day.strftime('%d/%m')
+        # Create activity info
+        day_info = {
+            'date': day_str,
+            'display': day_display,
+            'actions': activity_data[day_str]['actions'],
+            'completions': activity_data[day_str]['completions'],
+            'weekday': day.strftime('%a')[:1],  # First letter of weekday
+            'is_today': day == today
+        }
+        last_14_days.append(day_info)
+
+    # If this is an HTMX request, only return the updated task list
+    if 'HX-Request' in request.headers:
+        # Return task list and activity graph
+        response = make_response(render_template('_tasks.html', tasks=tasks, today=today))
+        response.headers['HX-Trigger'] = json.dumps({
+            'refreshActivityGraph': {
+                'activity_data': last_14_days
+            }
+        })
+        return response
+        
     # Render only the task list part
     return render_template('_tasks.html', tasks=tasks, today=today)
 

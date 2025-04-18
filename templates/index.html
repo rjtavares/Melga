@@ -398,6 +398,81 @@
             gap: 0.5rem;
             margin-top: 1rem;
         }
+        
+        /* Activity graph styles */
+        .activity-graph {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            gap: 2px;
+            margin: 1rem auto;
+            padding: 0.5rem;
+            background-color: var(--card-background-color);
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            max-width: 98%;
+        }
+        
+        .activity-day {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 14px;
+        }
+        
+        .activity-box {
+            width: 14px;
+            height: 14px;
+            border-radius: 2px;
+            margin-bottom: 2px;
+            background-color: #ebedf0;
+            transition: all 0.3s ease;
+        }
+        
+        .activity-box.actions-1 {
+            background-color: rgba(0, 123, 255, 0.4);
+        }
+        
+        .activity-box.actions-2 {
+            background-color: rgba(0, 123, 255, 0.5);
+        }
+        
+        .activity-box.actions-3 {
+            background-color: rgba(0, 123, 255, 0.6);
+        }
+        
+        .activity-box.actions-4-plus {
+            background-color: rgba(0, 123, 255, 0.7);
+        }
+        
+        .activity-box.completions-1-plus {
+            background-color: #007bff;
+        }
+        
+        .activity-box.is-today {
+            border: 1px solid #007bff;
+        }
+        
+        .activity-day-label {
+            font-size: 0.6rem;
+            color: var(--muted-color);
+            margin-top: 2px;
+        }
+        
+        .activity-weekday {
+            font-size: 0.6rem;
+            color: var(--muted-color);
+            height: 14px;
+            margin-bottom: 2px;
+        }
+        
+        .activity-header {
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--muted-color);
+            margin-bottom: 0.25rem;
+            font-weight: normal;
+        }
     </style>
 </head>
 <body>
@@ -406,6 +481,29 @@
             <header>
                 <h1>Panic Task List</h1>
             </header>
+
+            <!-- Activity Graph -->
+            <div class="activity-graph-container">
+                <h6 class="activity-header">Activity over the last 14 days</h6>
+                <div class="activity-graph">
+                    {% for day in activity_data %}
+                    <div class="activity-day">
+                        <div class="activity-weekday">{{ day.weekday }}</div>
+                        <div class="activity-box 
+                            {% if day.completions > 0 %}completions-1-plus
+                            {% elif day.actions > 3 %}actions-4-plus
+                            {% elif day.actions == 3 %}actions-3
+                            {% elif day.actions == 2 %}actions-2
+                            {% elif day.actions == 1 %}actions-1
+                            {% endif %}
+                            {% if day.is_today %}is-today{% endif %}"
+                            title="{{ day.display }}: {{ day.actions }} actions, {{ day.completions }} completions">
+                        </div>
+                        <div class="activity-day-label">{{ day.display }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
 
             <!-- Flash Messages -->
             <div id="flash-messages-container">
@@ -471,6 +569,59 @@
         document.body.addEventListener('showFlash', function(evt) {
             // Fetch and display flash messages
             htmx.ajax('GET', '/flash-messages', {target: '#flash-messages-container'});
+        });
+        
+        // Update activity graph when new data is available
+        document.body.addEventListener('refreshActivityGraph', function(evt) {
+            const activityData = evt.detail.activity_data;
+            if (!activityData || activityData.length === 0) return;
+            
+            const activityGraph = document.querySelector('.activity-graph');
+            if (!activityGraph) return;
+            
+            // Clear existing graph
+            activityGraph.innerHTML = '';
+            
+            // Rebuild the activity graph
+            activityData.forEach(day => {
+                const dayElement = document.createElement('div');
+                dayElement.className = 'activity-day';
+                
+                const weekdayElement = document.createElement('div');
+                weekdayElement.className = 'activity-weekday';
+                weekdayElement.textContent = day.weekday;
+                dayElement.appendChild(weekdayElement);
+                
+                const boxElement = document.createElement('div');
+                boxElement.className = 'activity-box';
+                
+                // Add appropriate class based on activity level
+                if (day.completions > 0) {
+                    boxElement.classList.add('completions-1-plus');
+                } else if (day.actions > 3) {
+                    boxElement.classList.add('actions-4-plus');
+                } else if (day.actions === 3) {
+                    boxElement.classList.add('actions-3');
+                } else if (day.actions === 2) {
+                    boxElement.classList.add('actions-2');
+                } else if (day.actions === 1) {
+                    boxElement.classList.add('actions-1');
+                }
+                
+                if (day.is_today) {
+                    boxElement.classList.add('is-today');
+                }
+                
+                boxElement.title = `${day.display}: ${day.actions} actions, ${day.completions} completions`;
+                dayElement.appendChild(boxElement);
+                
+                const labelElement = document.createElement('div');
+                labelElement.className = 'activity-day-label';
+                labelElement.textContent = day.display;
+                dayElement.appendChild(labelElement);
+                
+                activityGraph.appendChild(dayElement);
+            });
         });
         
         // Handle modal events
