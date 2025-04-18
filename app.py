@@ -53,10 +53,10 @@ def index():
     # Get activity data for the GitHub-style activity graph
     activity_data = get_activity_data()
     
-    # Get the last 14 days as a list for display
-    last_14_days = []
-    for i in range(14):
-        day = today - timedelta(days=13-i)
+    # Get the last 21 days as a list for display
+    last_21_days = []
+    for i in range(21):
+        day = today - timedelta(days=20-i)
         day_str = day.strftime('%Y-%m-%d')
         # Format the date for display
         day_display = day.strftime('%d/%m')
@@ -69,9 +69,9 @@ def index():
             'weekday': day.strftime('%a')[:1],  # First letter of weekday
             'is_today': day == today
         }
-        last_14_days.append(day_info)
+        last_21_days.append(day_info)
 
-    return render_template('index.html', tasks=tasks, today=today, activity_data=last_14_days)
+    return render_template('index.html', tasks=tasks, today=today, activity_data=last_21_days)
 
 
 # --- HTMX Routes ---
@@ -101,10 +101,10 @@ def get_tasks():
     # Get activity data for the GitHub-style activity graph
     activity_data = get_activity_data()
     
-    # Get the last 14 days as a list for display
-    last_14_days = []
-    for i in range(14):
-        day = today - timedelta(days=13-i)
+    # Get the last 21 days as a list for display
+    last_21_days = []
+    for i in range(21):
+        day = today - timedelta(days=20-i)
         day_str = day.strftime('%Y-%m-%d')
         # Format the date for display
         day_display = day.strftime('%d/%m')
@@ -117,7 +117,7 @@ def get_tasks():
             'weekday': day.strftime('%a')[:1],  # First letter of weekday
             'is_today': day == today
         }
-        last_14_days.append(day_info)
+        last_21_days.append(day_info)
 
     # If this is an HTMX request, only return the updated task list
     if 'HX-Request' in request.headers:
@@ -125,7 +125,7 @@ def get_tasks():
         response = make_response(render_template('_tasks.html', tasks=tasks, today=today))
         response.headers['HX-Trigger'] = json.dumps({
             'refreshActivityGraph': {
-                'activity_data': last_14_days
+                'activity_data': last_21_days
             }
         })
         return response
