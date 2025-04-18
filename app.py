@@ -42,8 +42,8 @@ def index():
         try:
             # Parse DB date (YYYY-MM-DD)
             due_date_obj = datetime.strptime(task['due_date'], '%Y-%m-%d').date()
-            # Format for display (DD/MM/YYYY)
-            task_dict['due_date_display'] = due_date_obj.strftime('%d/%m/%Y')
+            # Format for display (DD/MMM)
+            task_dict['due_date_display'] = due_date_obj.strftime('%d/%b')
             task_dict['is_overdue'] = not task['completed'] and due_date_obj < today
         except (ValueError, TypeError):
             task_dict['due_date_display'] = "Invalid Date"
@@ -90,8 +90,8 @@ def get_tasks():
         try:
             # Parse DB date (YYYY-MM-DD)
             due_date_obj = datetime.strptime(task['due_date'], '%Y-%m-%d').date()
-            # Format for display (DD/MM/YYYY)
-            task_dict['due_date_display'] = due_date_obj.strftime('%d/%m/%Y')
+            # Format for display (DD/MMM)
+            task_dict['due_date_display'] = due_date_obj.strftime('%d/%b')
             task_dict['is_overdue'] = not task['completed'] and due_date_obj < today
         except (ValueError, TypeError):
             task_dict['due_date_display'] = "Invalid Date"
