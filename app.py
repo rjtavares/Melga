@@ -8,6 +8,7 @@ import os
 
 load_dotenv()
 app = Flask(__name__)
+app.secret_key = os.environ.get('SECRET_KEY', 'dev_key_for_testing')  # Set a secret key for Flask sessions
 
 @app.teardown_appcontext
 def close_connection(exception):
@@ -111,11 +112,20 @@ def add_task():
 @app.route('/toggle/<int:task_id>', methods=['POST'])
 def toggle_task(task_id):
     db = get_db()
-    cursor = db.execute('SELECT completed FROM tasks WHERE id = ?', (task_id,))
+    cursor = db.execute('SELECT completed, completion_date FROM tasks WHERE id = ?', (task_id,))
     task = cursor.fetchone()
     if task:
         new_status = not task['completed']
-        db.execute('UPDATE tasks SET completed = ? WHERE id = ?', (new_status, task_id))
+        today = date.today()
+        today_str = today.strftime('%Y-%m-%d')
+        
+        if new_status:  # If task is being marked as completed
+            db.execute('UPDATE tasks SET completed = ?, completion_date = ? WHERE id = ?', 
+                      (new_status, today_str, task_id))
+        else:  # If task is being marked as pending
+            db.execute('UPDATE tasks SET completed = ?, completion_date = NULL WHERE id = ?', 
+                      (new_status, task_id))
+        
         db.commit()
         status_text = "completed" if new_status else "marked as pending"
         flash(f'Task {status_text}.', 'success')
