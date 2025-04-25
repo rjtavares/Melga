@@ -16,6 +16,28 @@ def close_connection(exception):
     if db is not None:
         db.close()
 
+def get_current_goal():
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute('''
+        SELECT id, description, created_date, target_date, completed, completion_date
+        FROM goals
+        WHERE completed = 0
+        ORDER BY id DESC
+        LIMIT 1
+    ''')
+    goal = cursor.fetchone()
+    if goal:
+        return {
+            'id': goal[0],
+            'description': goal[1],
+            'created_date': goal[2],
+            'target_date': goal[3],
+            'completed': bool(goal[4]),
+            'completion_date': goal[5]
+        }
+    return None
+
 def init_db():
     with app.app_context():
         db = get_db()
@@ -71,7 +93,8 @@ def index():
         }
         last_21_days.append(day_info)
 
-    return render_template('index.html', tasks=tasks, today=today, activity_data=last_21_days)
+    current_goal = get_current_goal()
+    return render_template('index.html', tasks=tasks, today=today, activity_data=last_21_days, current_goal=current_goal)
 
 
 # --- HTMX Routes ---
@@ -559,6 +582,55 @@ def reset_date(task_id):
     response = make_response(get_tasks())
     response.headers['HX-Trigger'] = 'showFlash'
     return response
+
+
+@app.route('/goal/edit')
+def edit_goal():
+    current_goal = get_current_goal()
+    return render_template('_goal_edit.html', current_goal=current_goal)
+
+@app.route('/goal/view')
+def view_goal():
+    current_goal = get_current_goal()
+    return render_template('_goal_view.html', current_goal=current_goal)
+
+@app.route('/goal/update', methods=['POST'])
+def update_goal():
+    goal_description = request.form.get('goal_description', '').strip()
+    db = get_db()
+    cursor = db.cursor()
+    
+    # Get current goal if exists
+    current_goal = get_current_goal()
+    
+    if current_goal:
+        # Update existing goal
+        if goal_description:
+            cursor.execute('''
+                UPDATE goals
+                SET description = ?
+                WHERE id = ?
+            ''', (goal_description, current_goal['id']))
+        else:
+            # If description is empty, mark as completed
+            cursor.execute('''
+                UPDATE goals
+                SET completed = 1, completion_date = ?
+                WHERE id = ?
+            ''', (date.today().isoformat(), current_goal['id']))
+    elif goal_description:
+        # Create new goal
+        target_date = (date.today() + timedelta(days=30)).isoformat()  # Default target date 30 days from now
+        cursor.execute('''
+            INSERT INTO goals (description, created_date, target_date, completed)
+            VALUES (?, ?, ?, 0)
+        ''', (goal_description, date.today().isoformat(), target_date))
+    
+    db.commit()
+    flash('Goal updated successfully', 'success')
+    
+    # Return the updated view
+    return view_goal()
 
 
 if __name__ == '__main__':

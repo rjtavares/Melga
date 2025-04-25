@@ -523,6 +523,30 @@
                 font-size: 0.4rem;
             }            
         }
+        
+        .goal-container {
+            padding: 0.5rem 0.75rem;
+            margin-bottom: 0.5rem;
+            border-radius: 0.5rem;
+            background-color: var(--card-background-color);
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            border-left: 3px solid var(--primary);
+            position: relative;
+        }
+        
+        .goal-text {
+            font-weight: 500;
+        }
+        
+        .view-mode {
+            cursor: pointer;
+        }
+        
+        .view-mode:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
     </style>
 </head>
 <body>
@@ -530,6 +554,14 @@
         <article>
             <header>
                 <h1>Panic Task List</h1>
+                <!-- Current Goal Section -->
+                <div id="current-goal-section" class="goal-container view-mode"
+                    hx-get="/goal/edit"
+                    hx-target="#current-goal-section"
+                    hx-swap="outerHTML"
+                    style="cursor: pointer;" title="Click to edit current goal">
+                    <strong>Current Goal: </strong><span class="goal-text">{{ current_goal.description if current_goal else '' }}</span>
+                </div>
             </header>
 
             <!-- Activity Graph -->

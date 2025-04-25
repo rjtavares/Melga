@@ -1,0 +1,55 @@
+<div id="current-goal-section" class="goal-container edit-mode">
+    <form hx-post="/goal/update"
+          hx-target="#current-goal-section"
+          hx-swap="outerHTML"
+          hx-indicator="#goal-spinner">
+        <div class="form-grid-goal">
+            <textarea name="goal_description" 
+                      placeholder="Enter your current goal..." 
+                      rows="1" 
+                      autofocus>{{ current_goal.description if current_goal else '' }}</textarea>
+            <div class="button-group">
+                <button type="submit" class="primary">Save</button>
+                <button type="button" 
+                        class="secondary outline" 
+                        hx-get="/goal/view" 
+                        hx-target="#current-goal-section"
+                        hx-swap="outerHTML">Cancel</button>
+            </div>
+        </div>
+        <span id="goal-spinner" class="htmx-indicator">Saving...</span>
+    </form>
+</div>
+
+<style>
+.goal-container.edit-mode {
+    background-color: var(--card-background-color);
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    margin-bottom: 0.5rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    border-left: 3px solid var(--primary);
+}
+
+.form-grid-goal {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.5rem;
+    align-items: end;
+}
+
+.form-grid-goal textarea {
+    margin-bottom: 0;
+    resize: vertical;
+}
+
+.form-grid-goal .button-group {
+    display: flex;
+    flex-direction: row;
+    gap: 0.5rem;
+}
+
+.form-grid-goal button {
+    margin-bottom: 0;
+}
+</style>
