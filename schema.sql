@@ -18,3 +18,18 @@ CREATE TABLE task_actions (
     action_date DATE NOT NULL,
     FOREIGN KEY (task_id) REFERENCES tasks(id)
 );
+
+CREATE TABLE goals (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        description TEXT NOT NULL,
+        created_date DATE NOT NULL,
+        target_date DATE NOT NULL,
+        completed BOOLEAN NOT NULL DEFAULT 0, -- 0 for false, 1 for true
+        completion_date DATE
+);
+
+CREATE TABLE notes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    note TEXT NOT NULL,
+    created_date DATE NOT NULL
+)
