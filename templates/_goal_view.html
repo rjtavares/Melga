@@ -1,9 +1,22 @@
-<div id="current-goal-section" class="goal-container view-mode"
-     hx-get="/goal/edit"
-     hx-target="#current-goal-section"
-     hx-swap="outerHTML"
-     style="cursor: pointer;" title="Click to edit current goal">
-    <strong>Current Goal: </strong><span class="goal-text">{{ current_goal.description if current_goal else '' }}</span>
+<div id="current-goal-section" class="goal-container view-mode">
+    <div class="goal-content" 
+         hx-get="/goal/edit"
+         hx-target="#current-goal-section"
+         hx-swap="outerHTML"
+         style="cursor: pointer;" title="Click to edit current goal">
+        <strong>Current Goal: </strong><span class="goal-text">{{ current_goal.description if current_goal else '' }}</span>
+    </div>
+    {% if current_goal %}
+    <div class="goal-actions">
+        <button class="complete-goal-btn"
+                hx-post="/goal/complete/{{ current_goal.id }}"
+                hx-target="#current-goal-section"
+                hx-swap="outerHTML"
+                hx-confirm="Mark this goal as completed?">
+            ✓
+        </button>
+    </div>
+    {% endif %}
 </div>
 
 <style>
@@ -15,12 +28,19 @@
     box-shadow: 0 1px 4px rgba(0,0,0,0.08);
     border-left: 3px solid var(--primary);
     transition: all 0.3s ease;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .goal-container.view-mode:hover {
     background-color: #e9ecef;
     transform: translateY(-1px);
     box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.goal-content {
+    flex-grow: 1;
 }
 
 .goal-text {
@@ -35,5 +55,27 @@
     content: 'Click to set current goal...';
     color: var(--muted-color);
     font-style: italic;
+}
+
+.goal-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.complete-goal-btn {
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    padding: 0.2rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin: 0;
+}
+
+.complete-goal-btn:hover {
+    background-color: var(--primary-hover);
+    transform: scale(1.05);
 }
 </style>

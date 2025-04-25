@@ -555,13 +555,7 @@
             <header>
                 <h1>Panic Task List</h1>
                 <!-- Current Goal Section -->
-                <div id="current-goal-section" class="goal-container view-mode"
-                    hx-get="/goal/edit"
-                    hx-target="#current-goal-section"
-                    hx-swap="outerHTML"
-                    style="cursor: pointer;" title="Click to edit current goal">
-                    <strong>Current Goal: </strong><span class="goal-text">{{ current_goal.description if current_goal else '' }}</span>
-                </div>
+                {% include '_goal_view.html' %}
             </header>
 
             <!-- Activity Graph -->

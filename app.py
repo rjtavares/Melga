@@ -611,13 +611,6 @@ def update_goal():
                 SET description = ?
                 WHERE id = ?
             ''', (goal_description, current_goal['id']))
-        else:
-            # If description is empty, mark as completed
-            cursor.execute('''
-                UPDATE goals
-                SET completed = 1, completion_date = ?
-                WHERE id = ?
-            ''', (date.today().isoformat(), current_goal['id']))
     elif goal_description:
         # Create new goal
         target_date = (date.today() + timedelta(days=30)).isoformat()  # Default target date 30 days from now
@@ -628,6 +621,24 @@ def update_goal():
     
     db.commit()
     flash('Goal updated successfully', 'success')
+    
+    # Return the updated view
+    return view_goal()
+
+@app.route('/goal/complete/<int:goal_id>', methods=['POST'])
+def complete_goal(goal_id):
+    db = get_db()
+    cursor = db.cursor()
+    
+    # Mark the goal as completed
+    cursor.execute('''
+        UPDATE goals
+        SET completed = 1, completion_date = ?
+        WHERE id = ?
+    ''', (date.today().isoformat(), goal_id))
+    
+    db.commit()
+    flash('Goal marked as completed!', 'success')
     
     # Return the updated view
     return view_goal()
