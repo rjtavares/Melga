@@ -1,7 +1,7 @@
 {# templates/_tasks.html #}
 <ul>
     {% for task in tasks %}
-    <li class="card {% if task.completed %}completed{% endif %} {% if task.goal_id == current_goal.id %}linked-goal{% endif %}" id="task-{{ task.id }}">
+    <li class="card {% if task.completed %}completed{% endif %} {% if current_goal and task.goal_id == current_goal.id %}linked-goal{% endif %}" id="task-{{ task.id }}">
         <div class="task-info">
             <a href="/task/{{ task.id }}" class="task-link">{{ task.description }}</a>
         </div>

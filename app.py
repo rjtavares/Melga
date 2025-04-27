@@ -103,7 +103,7 @@ def index():
 def get_tasks():
     """Endpoint to fetch the task list partial for HTMX updates."""
     db = get_db()
-    cursor = db.execute('SELECT id, description, due_date, completed FROM tasks ORDER BY due_date ASC')
+    cursor = db.execute('SELECT id, description, due_date, completed, goal_id FROM tasks ORDER BY due_date ASC')
     tasks_raw = cursor.fetchall()
 
     tasks = []
@@ -279,7 +279,7 @@ def task_history(task_id):
         flash('Task not found.', 'error')
         # Consider redirecting to index or showing a dedicated error page
         # For now, rendering index template with empty tasks as a fallback
-        cursor = db.execute('SELECT id, description, due_date, completed FROM tasks ORDER BY due_date ASC')
+        cursor = db.execute('SELECT id, description, due_date, completed, goal_id FROM tasks ORDER BY due_date ASC')
         tasks_raw = cursor.fetchall()
         tasks = []
         today = date.today()
@@ -293,7 +293,8 @@ def task_history(task_id):
                 task_dict_item['due_date_display'] = "Invalid Date"
                 task_dict_item['is_overdue'] = False
             tasks.append(task_dict_item)
-        response = make_response(render_template('index.html', tasks=tasks, today=today))
+        current_goal = get_current_goal()
+        response = make_response(render_template('index.html', tasks=tasks, today=today, current_goal=current_goal))
         response.headers['HX-Trigger'] = 'showFlash' # Trigger flash display if needed
         return response
 
