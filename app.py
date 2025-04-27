@@ -54,7 +54,7 @@ def init_db_command():
 @app.route('/')
 def index():
     db = get_db()
-    cursor = db.execute('SELECT id, description, due_date, completed FROM tasks ORDER BY due_date ASC')
+    cursor = db.execute('SELECT id, description, due_date, completed, goal_id FROM tasks ORDER BY due_date ASC')
     tasks_raw = cursor.fetchall()
 
     tasks = []
@@ -161,6 +161,7 @@ def get_tasks():
 def add_task():
     description = request.form['description']
     due_date_str_input = request.form['due_date'] # Input is YYYY-MM-DD from HTML date input
+    link_goal = request.form.get('link_goal')
 
     if not description or not due_date_str_input:
         flash('Description and Due Date are required!', 'error')
@@ -174,8 +175,17 @@ def add_task():
         return get_tasks() # Return updated list to show flash
 
     db = get_db()
-    db.execute('INSERT INTO tasks (description, due_date) VALUES (?, ?)',
-               (description, due_date_db_format))
+    goal_id = None
+    if link_goal:
+        current_goal = get_current_goal()
+        if current_goal:
+            goal_id = current_goal['id']
+    if goal_id is not None:
+        db.execute('INSERT INTO tasks (description, due_date, goal_id) VALUES (?, ?, ?)',
+                   (description, due_date_db_format, goal_id))
+    else:
+        db.execute('INSERT INTO tasks (description, due_date) VALUES (?, ?)',
+                   (description, due_date_db_format))
     db.commit()
     flash('Task added successfully!', 'success')
 

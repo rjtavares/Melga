@@ -8,7 +8,9 @@ CREATE TABLE tasks (
     completed BOOLEAN NOT NULL DEFAULT 0, -- 0 for false, 1 for true
     last_notification DATE,
     completion_date DATE,
-    next_action TEXT
+    next_action TEXT,
+    goal_id INTEGER,
+    FOREIGN KEY (goal_id) REFERENCES goals(id)
 );
 
 CREATE TABLE task_actions (
