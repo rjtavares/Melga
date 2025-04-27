@@ -142,10 +142,13 @@ def get_tasks():
         }
         last_21_days.append(day_info)
 
+    # Get current goal to highlight tasks linked to it in the partial template
+    current_goal = get_current_goal()
+
     # If this is an HTMX request, only return the updated task list
     if 'HX-Request' in request.headers:
         # Return task list and activity graph
-        response = make_response(render_template('_tasks.html', tasks=tasks, today=today))
+        response = make_response(render_template('_tasks.html', tasks=tasks, today=today, current_goal=current_goal))
         response.headers['HX-Trigger'] = json.dumps({
             'refreshActivityGraph': {
                 'activity_data': last_21_days
@@ -154,7 +157,7 @@ def get_tasks():
         return response
         
     # Render only the task list part
-    return render_template('_tasks.html', tasks=tasks, today=today)
+    return render_template('_tasks.html', tasks=tasks, today=today, current_goal=current_goal)
 
 
 @app.route('/add', methods=['POST'])
