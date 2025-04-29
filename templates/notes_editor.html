@@ -87,7 +87,7 @@
             
             <div class="form-group">
                 <label for="note">Note Content (Markdown supported)</label>
-                <textarea id="note" name="note" required>{% if edit_mode %}{{ note.note }}{% endif %}</textarea>
+                <textarea id="note" name="note">{% if edit_mode %}{{ note.note }}{% endif %}</textarea>
             </div>
             
             <div class="form-group">
@@ -102,7 +102,7 @@
             </div>
             
             <div class="form-actions">
-                <button type="submit" class="primary">Save Note</button>
+                <button type="submit" class="primary" id="save-note-btn">Save Note</button>
             </div>
         </form>
     </main>
@@ -122,6 +122,26 @@
         // This ensures the editor properly loads with the existing content
         simplemde.value({{ note.note|tojson|safe }});
         {% endif %}
+        
+        // Custom form validation and submission
+        document.querySelector('.notes-form').addEventListener('submit', function(e) {
+            e.preventDefault(); // Prevent default form submission
+            
+            // Validation
+            var title = document.getElementById('title').value;
+            var content = simplemde.value();
+            
+            if (!title || !content) {
+                alert('Both title and note content are required!');
+                return false;
+            }
+            
+            // Update the textarea with the editor content
+            document.getElementById('note').value = content;
+            
+            // Submit the form
+            this.submit();
+        });
     </script>
 </body>
 </html>
