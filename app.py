@@ -790,6 +790,36 @@ def edit_note(note_id):
     
     return render_template('notes_editor.html', note=note_dict, edit_mode=True)
 
+@app.route('/notes/delete/<int:note_id>')
+def delete_note(note_id):
+    """Route to delete a note."""
+    db = get_db()
+    
+    # Check if the note exists
+    cursor = db.execute('SELECT id FROM notes WHERE id = ?', (note_id,))
+    note = cursor.fetchone()
+    
+    if not note:
+        flash('Note not found.', 'error')
+    else:
+        # Delete the note
+        db.execute('DELETE FROM notes WHERE id = ?', (note_id,))
+        db.commit()
+        flash('Note deleted successfully!', 'success')
+    
+    return redirect(url_for('view_notes'))
+
+@app.route('/notes/delete/<int:note_id>', methods=['DELETE'])
+def delete_note_htmx(note_id):
+    """Route to handle HTMX delete requests for notes."""
+    db = get_db()
+    
+    # Delete the note
+    db.execute('DELETE FROM notes WHERE id = ?', (note_id,))
+    db.commit()
+    
+    # No content response for HTMX delete
+    return "", 204
 
 if __name__ == '__main__':
     debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true' # <-- Change this line
