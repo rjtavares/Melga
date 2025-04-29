@@ -589,3 +589,27 @@ h1 {
     background-color: #e6f7e0 !important;
     border-left: 4px solid #3cb371;
 }
+
+/* Notes styles */
+.add-note-button-container {
+    margin: 0.5rem 0;
+    text-align: center;
+}
+
+.btn-note {
+    background-color: var(--yellow);
+    color: #333;
+    border: none;
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    text-decoration: none;
+    margin-bottom: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+.btn-note:hover {
+    background-color: var(--yellow-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}

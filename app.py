@@ -38,6 +38,26 @@ def get_current_goal():
         }
     return None
 
+def get_activity_data():
+    """Get activity data for the last 21 days."""
+    db = get_db()
+    cursor = db.execute('''
+        SELECT action_date, COUNT(*) as actions, 
+        SUM(CASE WHEN action_description LIKE '%completed%' THEN 1 ELSE 0 END) as completions
+        FROM task_actions
+        WHERE action_date >= DATE('now', '-21 days')
+        GROUP BY action_date
+        ORDER BY action_date ASC
+    ''')
+    activity_data = cursor.fetchall()
+    activity_dict = {}
+    for activity in activity_data:
+        activity_dict[activity['action_date']] = {
+            'actions': activity['actions'],
+            'completions': activity['completions']
+        }
+    return activity_dict
+
 def init_db():
     with app.app_context():
         db = get_db()
@@ -86,8 +106,8 @@ def index():
         day_info = {
             'date': day_str,
             'display': day_display,
-            'actions': activity_data[day_str]['actions'],
-            'completions': activity_data[day_str]['completions'],
+            'actions': activity_data.get(day_str, {'actions': 0, 'completions': 0})['actions'],
+            'completions': activity_data.get(day_str, {'actions': 0, 'completions': 0})['completions'],
             'weekday': day.strftime('%a')[:1],  # First letter of weekday
             'is_today': day == today
         }
@@ -135,8 +155,8 @@ def get_tasks():
         day_info = {
             'date': day_str,
             'display': day_display,
-            'actions': activity_data[day_str]['actions'],
-            'completions': activity_data[day_str]['completions'],
+            'actions': activity_data.get(day_str, {'actions': 0, 'completions': 0})['actions'],
+            'completions': activity_data.get(day_str, {'actions': 0, 'completions': 0})['completions'],
             'weekday': day.strftime('%a')[:1],  # First letter of weekday
             'is_today': day == today
         }
@@ -656,6 +676,119 @@ def complete_goal(goal_id):
     
     # Return the updated view
     return view_goal()
+
+
+# ----- Notes Routes -----
+@app.route('/notes/new')
+def new_note():
+    """Route to display the new note form."""
+    return render_template('notes_editor.html')
+
+@app.route('/notes/save', methods=['POST'])
+def save_note():
+    """Route to save a new note."""
+    title = request.form.get('title')
+    note_content = request.form.get('note')
+    note_type = request.form.get('type', 'general')
+    
+    if not title or not note_content:
+        flash('Title and note content are required!', 'error')
+        return redirect(url_for('new_note'))
+    
+    db = get_db()
+    today = date.today()
+    
+    db.execute(
+        'INSERT INTO notes (title, note, type, created_date) VALUES (?, ?, ?, ?)',
+        (title, note_content, note_type, today)
+    )
+    db.commit()
+    
+    flash('Note saved successfully!', 'success')
+    return redirect(url_for('view_notes'))
+
+@app.route('/notes/view')
+def view_notes():
+    """Route to view all notes."""
+    db = get_db()
+    cursor = db.execute('SELECT id, title, note, type, created_date FROM notes ORDER BY created_date DESC')
+    notes_raw = cursor.fetchall()
+    
+    notes = []
+    for note in notes_raw:
+        note_dict = dict(note)
+        # Format the date
+        try:
+            created_date_obj = datetime.strptime(note['created_date'], '%Y-%m-%d').date()
+            note_dict['created_date'] = created_date_obj.strftime('%d %b %Y')
+        except (ValueError, TypeError):
+            note_dict['created_date'] = "Unknown Date"
+        
+        # Truncate note preview
+        if len(note_dict['note']) > 150:
+            note_dict['note'] = note_dict['note'][:150] + '...'
+            
+        notes.append(note_dict)
+    
+    return render_template('notes_list.html', notes=notes)
+
+@app.route('/notes/<int:note_id>')
+def view_note(note_id):
+    """Route to view a specific note."""
+    db = get_db()
+    cursor = db.execute('SELECT id, title, note, type, created_date FROM notes WHERE id = ?', (note_id,))
+    note = cursor.fetchone()
+    
+    if not note:
+        flash('Note not found.', 'error')
+        return redirect(url_for('view_notes'))
+    
+    note_dict = dict(note)
+    
+    # Format the date
+    try:
+        created_date_obj = datetime.strptime(note['created_date'], '%Y-%m-%d').date()
+        note_dict['created_date'] = created_date_obj.strftime('%d %b %Y')
+    except (ValueError, TypeError):
+        note_dict['created_date'] = "Unknown Date"
+    
+    return render_template('note_view.html', note=note_dict)
+
+@app.route('/notes/edit/<int:note_id>', methods=['GET', 'POST'])
+def edit_note(note_id):
+    """Route to edit a note."""
+    db = get_db()
+    
+    if request.method == 'POST':
+        title = request.form.get('title')
+        note_content = request.form.get('note')
+        note_type = request.form.get('type', 'general')
+        
+        if not title or not note_content:
+            flash('Title and note content are required!', 'error')
+            return redirect(url_for('edit_note', note_id=note_id))
+        
+        db.execute(
+            'UPDATE notes SET title = ?, note = ?, type = ? WHERE id = ?',
+            (title, note_content, note_type, note_id)
+        )
+        db.commit()
+        
+        flash('Note updated successfully!', 'success')
+        return redirect(url_for('view_note', note_id=note_id))
+    
+    # GET request - show edit form
+    cursor = db.execute('SELECT id, title, note, type, created_date FROM notes WHERE id = ?', (note_id,))
+    note = cursor.fetchone()
+    
+    if not note:
+        flash('Note not found.', 'error')
+        return redirect(url_for('view_notes'))
+    
+    # Convert to dictionary for template
+    note_dict = dict(note)
+    
+    return render_template('notes_editor.html', note=note_dict, edit_mode=True)
 
 
 if __name__ == '__main__':

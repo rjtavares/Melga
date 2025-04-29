@@ -86,6 +86,11 @@
                 <span id="add-task-spinner" class="htmx-indicator">Adding...</span>
             </form>
 
+            <!-- Add Note Button -->
+            <div class="add-note-button-container">
+                <a href="/notes/new" class="btn btn-note" role="button">Add Note</a>
+            </div>
+
             <!-- Task List Container -->
             <div id="task-list-container" class="task-list" hx-trigger="load" hx-get="/tasks">
                 <!-- Initial load or message -->

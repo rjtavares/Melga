@@ -32,6 +32,7 @@ CREATE TABLE goals (
 
 CREATE TABLE notes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
     note TEXT NOT NULL,
     type TEXT,
     created_date DATE NOT NULL

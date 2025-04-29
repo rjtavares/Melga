@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Note - Melga</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon-16x16.png') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}">
+    <!-- Add SimpleMDE Markdown Editor -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.css">
+    <script src="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.js"></script>
+    <style>
+        .notes-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+        
+        .notes-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .back-button {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            color: var(--primary);
+            text-decoration: none;
+            border-radius: 0.25rem;
+            background-color: transparent;
+            border: 1px solid var(--primary);
+            transition: all 0.2s ease;
+        }
+        
+        .back-button:hover {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .notes-form {
+            background-color: var(--card-background-color);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+        
+        .CodeMirror {
+            min-height: 300px;
+            border-radius: 0.25rem;
+        }
+    </style>
+</head>
+<body>
+    <main class="notes-container">
+        <div class="notes-header">
+            <h1>{% if edit_mode %}Edit{% else %}Add{% endif %} Note</h1>
+            <a href="{% if edit_mode %}/notes/{{ note.id }}{% else %}/{% endif %}" class="back-button">
+                {% if edit_mode %}Back to Note{% else %}Back to Tasks{% endif %}
+            </a>
+        </div>
+        
+        <div id="flash-messages-container">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                <ul class="flash-messages">
+                {% for category, message in messages %}
+                  <li class="{{ category }}">{{ message }}</li>
+                {% endfor %}
+                </ul>
+              {% endif %}
+            {% endwith %}
+        </div>
+        
+        <form class="notes-form" method="POST" action="{% if edit_mode %}/notes/edit/{{ note.id }}{% else %}/notes/save{% endif %}">
+            <div class="form-group">
+                <label for="title">Title</label>
+                <input type="text" id="title" name="title" required value="{% if edit_mode %}{{ note.title }}{% endif %}">
+            </div>
+            
+            <div class="form-group">
+                <label for="note">Note Content (Markdown supported)</label>
+                <textarea id="note" name="note" required>{% if edit_mode %}{{ note.note }}{% endif %}</textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="type">Note Type</label>
+                <select id="type" name="type">
+                    <option value="general" {% if edit_mode and note.type == 'general' %}selected{% endif %}>General</option>
+                    <option value="task" {% if edit_mode and note.type == 'task' %}selected{% endif %}>Task Related</option>
+                    <option value="goal" {% if edit_mode and note.type == 'goal' %}selected{% endif %}>Goal Related</option>
+                    <option value="idea" {% if edit_mode and note.type == 'idea' %}selected{% endif %}>Idea</option>
+                    <option value="til" {% if edit_mode and note.type == 'til' %}selected{% endif %}>Today I Learned</option>
+                </select>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="primary">Save Note</button>
+            </div>
+        </form>
+    </main>
+    
+    <script>
+        // Initialize SimpleMDE
+        var simplemde = new SimpleMDE({
+            element: document.getElementById("note"),
+            spellChecker: false,
+            autofocus: true,
+            placeholder: "Write your note here...",
+            toolbar: ["bold", "italic", "heading", "|", "quote", "unordered-list", "ordered-list", "|", "link", "image", "|", "preview", "side-by-side", "fullscreen", "|", "guide"]
+        });
+        
+        {% if edit_mode %}
+        // If in edit mode, set the content after initialization
+        // This ensures the editor properly loads with the existing content
+        simplemde.value({{ note.note|tojson|safe }});
+        {% endif %}
+    </script>
+</body>
+</html>
