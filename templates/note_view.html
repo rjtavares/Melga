@@ -28,6 +28,11 @@
             margin-bottom: 1rem;
         }
         
+        .note-actions {
+            display: flex;
+            justify-content: flex-end;
+        }
+
         .back-button {
             display: inline-block;
             padding: 0.5rem 1rem;
@@ -37,27 +42,30 @@
             background-color: transparent;
             border: 1px solid var(--primary);
             transition: all 0.2s ease;
+            max-height: 50px;
         }
         
         .back-button:hover {
-            background-color: var(--primary);
+            background-color: var(--primary-hover);
             color: white;
         }
         
         .edit-button {
             display: inline-block;
             padding: 0.5rem 1rem;
-            color: white;
+            color: var(--primary);
             text-decoration: none;
             border-radius: 0.25rem;
-            background-color: var(--primary);
-            border: none;
+            background-color: transparent;
+            border: 1px solid var(--primary);
             transition: all 0.2s ease;
+            max-height: 50px;
             margin-left: 0.5rem;
         }
         
         .edit-button:hover {
             background-color: var(--primary-hover);
+            color: white;
         }
         
         .delete-button {
@@ -71,6 +79,7 @@
             transition: all 0.2s ease;
             margin-left: 0.5rem;
             cursor: pointer;
+            max-height: 50px;
         }
         
         .delete-button:hover {
@@ -180,7 +189,7 @@
         <div class="note-header">
             <h1>Note</h1>
             <div class="note-actions">
-                <a href="/notes/view" class="back-button">Back to Notes</a>
+                <a href="/notes/view" class="back-button">Back</a>
                 <a href="/notes/edit/{{ note.id }}" class="edit-button">Edit</a>
                 <button onclick="confirmDelete({{ note.id }})" class="delete-button">Delete</button>
             </div>
