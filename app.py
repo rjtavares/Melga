@@ -2,7 +2,7 @@ import click
 from flask import Flask, render_template, request, g, make_response, get_flashed_messages, flash, json, redirect, url_for
 from datetime import date, datetime, timedelta
 import notifications  # Import the entire module instead of specific function
-from db import get_db, get_task, get_activity_data
+from db import get_db, get_task, get_activity_data, get_current_goal
 from dotenv import load_dotenv
 import os
 
@@ -15,48 +15,6 @@ def close_connection(exception):
     db = getattr(g, '_database', None)
     if db is not None:
         db.close()
-
-def get_current_goal():
-    db = get_db()
-    cursor = db.cursor()
-    cursor.execute('''
-        SELECT id, description, created_date, target_date, completed, completion_date
-        FROM goals
-        WHERE completed = 0
-        ORDER BY id DESC
-        LIMIT 1
-    ''')
-    goal = cursor.fetchone()
-    if goal:
-        return {
-            'id': goal[0],
-            'description': goal[1],
-            'created_date': goal[2],
-            'target_date': goal[3],
-            'completed': bool(goal[4]),
-            'completion_date': goal[5]
-        }
-    return None
-
-def get_activity_data():
-    """Get activity data for the last 21 days."""
-    db = get_db()
-    cursor = db.execute('''
-        SELECT action_date, COUNT(*) as actions, 
-        SUM(CASE WHEN action_description LIKE '%completed%' THEN 1 ELSE 0 END) as completions
-        FROM task_actions
-        WHERE action_date >= DATE('now', '-21 days')
-        GROUP BY action_date
-        ORDER BY action_date ASC
-    ''')
-    activity_data = cursor.fetchall()
-    activity_dict = {}
-    for activity in activity_data:
-        activity_dict[activity['action_date']] = {
-            'actions': activity['actions'],
-            'completions': activity['completions']
-        }
-    return activity_dict
 
 def init_db():
     with app.app_context():

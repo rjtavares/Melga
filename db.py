@@ -38,51 +38,73 @@ def set_last_notification(task, notification_date=None):
     db.execute('UPDATE tasks SET last_notification = ? WHERE id = ?', (notification_date or today, task['id']))
     db.commit()
 
-def get_activity_data(days=21):
+def get_activity_data(days=21, flask=True):
     """
     Get activity data for the past 21 days for GitHub-style activity graph
     Returns a dictionary with:
     - date strings as keys (YYYY-MM-DD format)
     - dictionary values containing counts for 'actions' and 'completions'
     """
-    # Initialize result with the past 21 days
+    # Initialize result with the period
     today = date.today()
-    result = {}
-    
-    # Create entries for each of the last 21 days
-    for i in range(21):
-        day = today - timedelta(days=20-i)  # Start from 20 days ago
-        day_str = day.strftime('%Y-%m-%d')
-        result[day_str] = {"actions": 0, "completions": 0}
     
     # Get database connection
-    db = get_db(flask=True)
+    db = get_db(flask=flask)
     
-    # Get task actions for the past 21 days
-    start_date = (today - timedelta(days=20)).strftime('%Y-%m-%d')
-    cursor = db.execute(
+    # Get task actions for the period
+    start_date = (today - timedelta(days=days-1)).strftime('%Y-%m-%d')
+    actions = db.execute(
         'SELECT action_date, COUNT(*) as count FROM task_actions '
         'WHERE action_date >= ? GROUP BY action_date', 
         (start_date,)
-    )
+    ).fetchall()
     
-    for row in cursor.fetchall():
-        action_date = row['action_date']
-        # Only include dates within our 21-day window
-        if action_date in result:
-            result[action_date]["actions"] = row['count']
-    
-    # Get completed tasks for the past 21 days
-    cursor = db.execute(
+    # Get completed tasks for the period
+    task_completions = db.execute(
         'SELECT completion_date, COUNT(*) as count FROM tasks '
-        'WHERE completion_date >= ? AND completion_date IS NOT NULL GROUP BY completion_date', 
+        'WHERE completion_date >= ? AND completed = 1 GROUP BY completion_date', 
         (start_date,)
-    )
+    ).fetchall()
     
-    for row in cursor.fetchall():
-        completion_date = row['completion_date']
-        # Only include dates within our 21-day window
-        if completion_date in result:
-            result[completion_date]["completions"] = row['count']
+    # Get completed goals for the period
+    goal_completions = db.execute(
+        'SELECT completion_date, COUNT(*) as count FROM goals '
+        'WHERE completion_date >= ? AND completed = 1 GROUP BY completion_date', 
+        (start_date,)
+    ).fetchall()
+
+    result = {}
+    # Create entries for each of the days
+    for i in range(days):
+        day = today - timedelta(days=i) 
+        day_str = day.strftime('%Y-%m-%d')
+
+        actions_date = actions.get(day_str, {'count': 0})['count']
+        task_completions_date = task_completions.get(day_str, {'count': 0})['count']
+        goal_completions_date = goal_completions.get(day_str, {'count': 0})['count']
+
+        result[day_str] = {"actions": actions_date, "completions": task_completions_date+goal_completions_date}
     
     return result
+
+def get_current_goal():
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute('''
+        SELECT id, description, created_date, target_date, completed, completion_date
+        FROM goals
+        WHERE completed = 0
+        ORDER BY id DESC
+        LIMIT 1
+    ''')
+    goal = cursor.fetchone()
+    if goal:
+        return {
+            'id': goal[0],
+            'description': goal[1],
+            'created_date': goal[2],
+            'target_date': goal[3],
+            'completed': bool(goal[4]),
+            'completion_date': goal[5]
+        }
+    return None
