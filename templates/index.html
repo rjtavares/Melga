@@ -93,10 +93,7 @@
             </div>
 
             <!-- Task List Container -->
-            <div id="task-list-container" class="task-list" hx-trigger="load" hx-get="/tasks">
-                <!-- Initial load or message -->
-                <p>Loading tasks...</p>
-                <!-- Tasks will be loaded here by HTMX -->
+            <div id="task-list-container" class="task-list">
                  {% include '_tasks.html' %} {# Include initial tasks rendered server-side #}
             </div>
         </article>

@@ -1,6 +1,6 @@
 from flask import g
 import sqlite3
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 
 DATABASE = 'tasks.db'
 
@@ -73,15 +73,20 @@ def get_activity_data(days=21, flask=True):
         (start_date,)
     ).fetchall()
 
+    # Convert the list results to dictionaries for easier lookup
+    actions_dict = {row['action_date']: row['count'] for row in actions}
+    task_completions_dict = {row['completion_date']: row['count'] for row in task_completions}
+    goal_completions_dict = {row['completion_date']: row['count'] for row in goal_completions}
+
     result = {}
     # Create entries for each of the days
     for i in range(days):
         day = today - timedelta(days=i) 
         day_str = day.strftime('%Y-%m-%d')
 
-        actions_date = actions.get(day_str, {'count': 0})['count']
-        task_completions_date = task_completions.get(day_str, {'count': 0})['count']
-        goal_completions_date = goal_completions.get(day_str, {'count': 0})['count']
+        actions_date = actions_dict.get(day_str, 0)
+        task_completions_date = task_completions_dict.get(day_str, 0)
+        goal_completions_date = goal_completions_dict.get(day_str, 0)
 
         result[day_str] = {"actions": actions_date, "completions": task_completions_date+goal_completions_date}
     
@@ -108,3 +113,24 @@ def get_current_goal():
             'completion_date': goal[5]
         }
     return None
+
+def get_tasks(flask=True):
+    db = get_db(flask=flask)
+    cursor = db.execute('SELECT id, description, due_date, completed, goal_id FROM tasks ORDER BY due_date ASC')
+    tasks_raw = cursor.fetchall()
+
+    tasks = []
+    today = date.today()
+    for task in tasks_raw:
+        task_dict = dict(task) # Convert Row object to dict
+        try:
+            # Parse DB date (YYYY-MM-DD)
+            due_date_obj = datetime.strptime(task['due_date'], '%Y-%m-%d').date()
+            # Format for display (DD/MMM)
+            task_dict['due_date_display'] = due_date_obj.strftime('%d/%b')
+            task_dict['is_overdue'] = not task['completed'] and due_date_obj < today
+        except (ValueError, TypeError):
+            task_dict['due_date_display'] = "Invalid Date"
+            task_dict['is_overdue'] = False
+        tasks.append(task_dict)
+    return tasks

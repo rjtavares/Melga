@@ -1,8 +1,7 @@
-import click
 from flask import Flask, render_template, request, g, make_response, get_flashed_messages, flash, json, redirect, url_for
 from datetime import date, datetime, timedelta
 import notifications  # Import the entire module instead of specific function
-from db import get_db, get_task, get_activity_data, get_current_goal
+from db import get_db, get_task, get_activity_data, get_current_goal, get_tasks
 from dotenv import load_dotenv
 import os
 
@@ -16,41 +15,10 @@ def close_connection(exception):
     if db is not None:
         db.close()
 
-def init_db():
-    with app.app_context():
-        db = get_db()
-        with app.open_resource('schema.sql', mode='r') as f:
-            db.cursor().executescript(f.read())
-        db.commit()
-
-@app.cli.command('init-db')
-def init_db_command():
-    """Clear the existing data and create new tables."""
-    init_db()
-    click.echo('Initialized the database.')
-
 @app.route('/')
 def index():
-    db = get_db()
-    cursor = db.execute('SELECT id, description, due_date, completed, goal_id FROM tasks ORDER BY due_date ASC')
-    tasks_raw = cursor.fetchall()
-
-    tasks = []
     today = date.today()
-    for task in tasks_raw:
-        task_dict = dict(task) # Convert Row object to dict
-        try:
-            # Parse DB date (YYYY-MM-DD)
-            due_date_obj = datetime.strptime(task['due_date'], '%Y-%m-%d').date()
-            # Format for display (DD/MMM)
-            task_dict['due_date_display'] = due_date_obj.strftime('%d/%b')
-            task_dict['is_overdue'] = not task['completed'] and due_date_obj < today
-        except (ValueError, TypeError):
-            task_dict['due_date_display'] = "Invalid Date"
-            task_dict['is_overdue'] = False
-        tasks.append(task_dict)
-    
-    # Get activity data for the GitHub-style activity graph
+    tasks = get_tasks()
     activity_data = get_activity_data()
     
     # Get the last 21 days as a list for display
@@ -72,92 +40,35 @@ def index():
         last_21_days.append(day_info)
 
     current_goal = get_current_goal()
+
     return render_template('index.html', tasks=tasks, today=today, activity_data=last_21_days, current_goal=current_goal)
 
 
 # --- HTMX Routes ---
 
-@app.route('/tasks', methods=['GET'])
-def get_tasks():
+def make_task_list():
     """Endpoint to fetch the task list partial for HTMX updates."""
-    db = get_db()
-    cursor = db.execute('SELECT id, description, due_date, completed, goal_id FROM tasks ORDER BY due_date ASC')
-    tasks_raw = cursor.fetchall()
-
-    tasks = []
-    today = date.today()
-    for task in tasks_raw:
-        task_dict = dict(task) # Convert Row object to dict
-        try:
-            # Parse DB date (YYYY-MM-DD)
-            due_date_obj = datetime.strptime(task['due_date'], '%Y-%m-%d').date()
-            # Format for display (DD/MMM)
-            task_dict['due_date_display'] = due_date_obj.strftime('%d/%b')
-            task_dict['is_overdue'] = not task['completed'] and due_date_obj < today
-        except (ValueError, TypeError):
-            task_dict['due_date_display'] = "Invalid Date"
-            task_dict['is_overdue'] = False
-        tasks.append(task_dict)
-
-    # Get activity data for the GitHub-style activity graph
-    activity_data = get_activity_data()
-    
-    # Get the last 21 days as a list for display
-    last_21_days = []
-    for i in range(21):
-        day = today - timedelta(days=20-i)
-        day_str = day.strftime('%Y-%m-%d')
-        # Format the date for display
-        day_display = day.strftime('%d/%m')
-        # Create activity info
-        day_info = {
-            'date': day_str,
-            'display': day_display,
-            'actions': activity_data.get(day_str, {'actions': 0, 'completions': 0})['actions'],
-            'completions': activity_data.get(day_str, {'actions': 0, 'completions': 0})['completions'],
-            'weekday': day.strftime('%a')[:1],  # First letter of weekday
-            'is_today': day == today
-        }
-        last_21_days.append(day_info)
-
-    # Get current goal to highlight tasks linked to it in the partial template
+    tasks = get_tasks()
     current_goal = get_current_goal()
-
-    # If this is an HTMX request, only return the updated task list
-    if 'HX-Request' in request.headers:
-        # Return task list and activity graph
-        response = make_response(render_template('_tasks.html', tasks=tasks, today=today, current_goal=current_goal))
-        response.headers['HX-Trigger'] = json.dumps({
-            'refreshActivityGraph': {
-                'activity_data': last_21_days
-            }
-        })
-        return response
-        
-    # Render only the task list part
-    return render_template('_tasks.html', tasks=tasks, today=today, current_goal=current_goal)
+    return render_template('_tasks.html', tasks=tasks, current_goal=current_goal)
 
 
 @app.route('/add', methods=['POST'])
 def add_task():
     description = request.form['description']
     due_date_str_input = request.form['due_date'] # Input is YYYY-MM-DD from HTML date input
-    link_goal = request.form.get('link_goal')
-
-    if not description or not due_date_str_input:
-        flash('Description and Due Date are required!', 'error')
-        return get_tasks() # Return updated list even on error to show flash
+    link_to_goal = request.form.get('link_goal')
 
     try:
         # Parse the input date (YYYY-MM-DD)
         due_date_db_format = datetime.strptime(due_date_str_input, '%Y-%m-%d').date()
     except ValueError:
         flash('Invalid date format.', 'error')
-        return get_tasks() # Return updated list to show flash
+        return make_task_list() # Return updated list to show flash
 
     db = get_db()
     goal_id = None
-    if link_goal:
+    if link_to_goal:
         current_goal = get_current_goal()
         if current_goal:
             goal_id = current_goal['id']
@@ -171,7 +82,7 @@ def add_task():
     flash('Task added successfully!', 'success')
 
     # Return the updated task list partial for HTMX
-    response = make_response(get_tasks())
+    response = make_response(make_task_list())
     response.headers['HX-Trigger'] = 'showFlash'
     return response
 
@@ -200,7 +111,7 @@ def toggle_task(task_id):
         flash('Task not found.', 'error')
 
     # Return the updated task list partial for HTMX
-    response = make_response(get_tasks())
+    response = make_response(make_task_list())
     response.headers['HX-Trigger'] = 'showFlash'
     return response
 
@@ -213,7 +124,7 @@ def delete_task(task_id):
     flash('Task deleted.', 'info')
 
     # Return the updated task list partial for HTMX
-    response = make_response(get_tasks())
+    response = make_response(make_task_list())
     response.headers['HX-Trigger'] = 'showFlash'
     return response
 
@@ -424,7 +335,7 @@ def snooze_task(task_id, days):
     # Don't allow snoozing without an action description
     if not action_description:
         flash('Action description is required to snooze a task.', 'error')
-        response = make_response(get_tasks())
+        response = make_response(make_task_list())
         response.headers['HX-Trigger'] = 'showFlash'
         return response
     
@@ -436,7 +347,7 @@ def snooze_task(task_id, days):
         # Validate days input
         if days not in [1, 3, 7]:
             flash('Invalid snooze duration.', 'error')
-            response = make_response(get_tasks())
+            response = make_response(make_task_list())
             response.headers['HX-Trigger'] = 'showFlash'
             return response
             
@@ -478,7 +389,7 @@ def snooze_task(task_id, days):
         flash('Task not found.', 'error')
 
     # Return the updated task list partial for HTMX
-    response = make_response(get_tasks())
+    response = make_response(make_task_list())
     response.headers['HX-Trigger'] = 'showFlash'
     return response
 
@@ -549,7 +460,7 @@ def reset_date(task_id):
             due_date = date.fromisoformat(task['due_date'])
             if due_date < today:
                 flash('Cannot reset date for overdue tasks.', 'error')
-                response = make_response(get_tasks())
+                response = make_response(make_task_list())
                 response.headers['HX-Trigger'] = 'showFlash'
                 return response
         except (ValueError, TypeError):
@@ -571,7 +482,7 @@ def reset_date(task_id):
         flash('Task not found.', 'error')
 
     # Return the updated task list partial for HTMX
-    response = make_response(get_tasks())
+    response = make_response(make_task_list())
     response.headers['HX-Trigger'] = 'showFlash'
     return response
 
