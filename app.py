@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, g, make_response, get_flashed_messages, flash, json, redirect, url_for
 from datetime import date, datetime, timedelta
 import notifications  # Import the entire module instead of specific function
-from db import get_db, get_task, get_activity_data, get_current_goal, get_tasks, get_actions
+from db import *
 from dotenv import load_dotenv
 import os
 
@@ -88,14 +88,13 @@ def add_task():
 
 @app.route('/toggle/<int:task_id>', methods=['POST'])
 def toggle_task(task_id):
-    db = get_db()
-    cursor = db.execute('SELECT completed, completion_date FROM tasks WHERE id = ?', (task_id,))
-    task = cursor.fetchone()
+    task = get_task(task_id)
     if task:
         new_status = not task['completed']
         today = date.today()
         today_str = today.strftime('%Y-%m-%d')
         
+        db = get_db()
         if new_status:  # If task is being marked as completed
             db.execute('UPDATE tasks SET completed = ?, completion_date = ? WHERE id = ?', 
                       (new_status, today_str, task_id))
@@ -236,6 +235,7 @@ def add_task_action(task_id):
         return '', 404
     
     # Add the action
+    db = get_db()
     today = date.today().strftime('%Y-%m-%d')
     db.execute(
         'INSERT INTO task_actions (task_id, action_description, action_date) VALUES (?, ?, ?)',
@@ -279,9 +279,7 @@ def snooze_task(task_id, days):
         response.headers['HX-Trigger'] = 'showFlash'
         return response
     
-    db = get_db()
-    cursor = db.execute('SELECT id, due_date FROM tasks WHERE id = ?', (task_id,))
-    task = cursor.fetchone()
+    task = get_task(task_id)
 
     if task:
         # Validate days input
@@ -304,6 +302,7 @@ def snooze_task(task_id, days):
         new_due_date = current_due_date + timedelta(days=days)
         new_due_date_str = new_due_date.strftime('%Y-%m-%d')
 
+        db = get_db()
         db.execute('UPDATE tasks SET due_date = ? WHERE id = ?', (new_due_date_str, task_id))
         
         # Update next action if provided
@@ -345,40 +344,21 @@ def get_flash_messages():
 @app.route('/task/action/<int:action_id>/delete', methods=['DELETE'])
 def delete_action(action_id):
     """Delete a specific action from a task."""
-    db = get_db()
     
-    # First, get the task_id to return to the correct task after deletion
-    cursor = db.execute('SELECT task_id FROM task_actions WHERE id = ?', (action_id,))
-    action = cursor.fetchone()
+    action = get_action(action_id)
     
     if not action:
         return render_template('_actions.html', actions=[]), 404
     
+    print(action)
     task_id = action['task_id']
     
     # Delete the action
+    db = get_db()
     db.execute('DELETE FROM task_actions WHERE id = ?', (action_id,))
     db.commit()
     
-    # Get updated actions list
-    cursor = db.execute(
-        'SELECT id, action_description, action_date FROM task_actions WHERE task_id = ? ORDER BY action_date DESC',
-        (task_id,)
-    )
-    actions_raw = cursor.fetchall()
-    
-    # Format actions data
-    actions = []
-    for action in actions_raw:
-        action_dict = dict(action)
-        try:
-            # Parse DB date (YYYY-MM-DD)
-            action_date_obj = datetime.strptime(action['action_date'], '%Y-%m-%d').date()
-            # Format for display (DD/MM/YYYY)
-            action_dict['action_date_display'] = action_date_obj.strftime('%d/%m/%Y')
-        except (ValueError, TypeError):
-            action_dict['action_date_display'] = "Invalid Date"
-        actions.append(action_dict)
+    actions = get_actions(task_id)
     
     # Return the updated actions list partial
     return render_template('_actions.html', actions=actions)
@@ -387,9 +367,7 @@ def delete_action(action_id):
 @app.route('/reset-date/<int:task_id>', methods=['POST'])
 def reset_date(task_id):
     """Reset the due date of a task to today."""
-    db = get_db()
-    cursor = db.execute('SELECT id, description, due_date FROM tasks WHERE id = ?', (task_id,))
-    task = cursor.fetchone()
+    task = get_task(task_id)
 
     if task:
         # Check if task is overdue
@@ -519,49 +497,26 @@ def save_note():
 @app.route('/notes/view')
 def view_notes():
     """Route to view all notes."""
-    db = get_db()
-    cursor = db.execute('SELECT id, title, note, type, created_date FROM notes ORDER BY created_date DESC')
-    notes_raw = cursor.fetchall()
-    
-    notes = []
-    for note in notes_raw:
-        note_dict = dict(note)
-        # Format the date
-        try:
-            created_date_obj = datetime.strptime(note['created_date'], '%Y-%m-%d').date()
-            note_dict['created_date'] = created_date_obj.strftime('%d %b %Y')
-        except (ValueError, TypeError):
-            note_dict['created_date'] = "Unknown Date"
-        
-        # Truncate note preview
-        if len(note_dict['note']) > 150:
-            note_dict['note'] = note_dict['note'][:150] + '...'
-            
-        notes.append(note_dict)
-    
+    notes = get_notes()    
     return render_template('notes_list.html', notes=notes)
 
 @app.route('/notes/<int:note_id>')
 def view_note(note_id):
     """Route to view a specific note."""
-    db = get_db()
-    cursor = db.execute('SELECT id, title, note, type, created_date FROM notes WHERE id = ?', (note_id,))
-    note = cursor.fetchone()
+    note = get_note(note_id)
     
     if not note:
         flash('Note not found.', 'error')
         return redirect(url_for('view_notes'))
-    
-    note_dict = dict(note)
-    
+        
     # Format the date
     try:
         created_date_obj = datetime.strptime(note['created_date'], '%Y-%m-%d').date()
-        note_dict['created_date'] = created_date_obj.strftime('%d %b %Y')
+        note['created_date'] = created_date_obj.strftime('%d %b %Y')
     except (ValueError, TypeError):
-        note_dict['created_date'] = "Unknown Date"
+        note['created_date'] = "Unknown Date"
     
-    return render_template('note_view.html', note=note_dict)
+    return render_template('note_view.html', note=note)
 
 @app.route('/notes/edit/<int:note_id>', methods=['GET', 'POST'])
 def edit_note(note_id):
@@ -587,17 +542,13 @@ def edit_note(note_id):
         return redirect(url_for('view_note', note_id=note_id))
     
     # GET request - show edit form
-    cursor = db.execute('SELECT id, title, note, type, created_date FROM notes WHERE id = ?', (note_id,))
-    note = cursor.fetchone()
+    note = get_note(note_id)
     
     if not note:
         flash('Note not found.', 'error')
         return redirect(url_for('view_notes'))
     
-    # Convert to dictionary for template
-    note_dict = dict(note)
-    
-    return render_template('notes_editor.html', note=note_dict, edit_mode=True)
+    return render_template('notes_editor.html', note=note, edit_mode=True)
 
 @app.route('/notes/delete/<int:note_id>')
 def delete_note(note_id):
@@ -605,8 +556,7 @@ def delete_note(note_id):
     db = get_db()
     
     # Check if the note exists
-    cursor = db.execute('SELECT id FROM notes WHERE id = ?', (note_id,))
-    note = cursor.fetchone()
+    note = get_note(note_id)
     
     if not note:
         flash('Note not found.', 'error')

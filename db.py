@@ -16,8 +16,8 @@ def get_db(flask=True):
         db.row_factory = sqlite3.Row
         return db
 
-def get_task(task_id, flask=True):
-    db = get_db(flask=True)
+def get_task(task_id):
+    db = get_db()
     cursor = db.execute('SELECT id, description, due_date, completed, last_notification, next_action FROM tasks WHERE id = ?', (task_id,))
     task = cursor.fetchone()
     return task
@@ -150,3 +150,38 @@ def get_actions(task_id):
             action_dict['action_date_display'] = "Invalid Date"
         actions.append(action_dict)
     return actions
+
+def get_action(action_id):
+    db = get_db()
+    cursor = db.execute('SELECT id, action_description, action_date, task_id FROM task_actions WHERE id = ?', (action_id,))
+    action = cursor.fetchone()
+    return dict(action)
+
+def get_note(note_id):
+    db = get_db()
+    cursor = db.execute('SELECT id, title, note, type, created_date FROM notes WHERE id = ?', (note_id,))
+    note = cursor.fetchone()
+    return dict(note)
+
+def get_notes():
+    db = get_db()
+    cursor = db.execute('SELECT id, title, note, type, created_date FROM notes ORDER BY created_date DESC')
+    notes_raw = cursor.fetchall()
+    
+    notes = []
+    for note in notes_raw:
+        note_dict = dict(note)
+        # Format the date
+        try:
+            created_date_obj = datetime.strptime(note['created_date'], '%Y-%m-%d').date()
+            note_dict['created_date'] = created_date_obj.strftime('%d %b %Y')
+        except (ValueError, TypeError):
+            note_dict['created_date'] = "Unknown Date"
+        
+        # Truncate note preview
+        if len(note_dict['note']) > 150:
+            note_dict['note'] = note_dict['note'][:150] + '...'
+            
+        notes.append(note_dict)
+    
+    return notes
