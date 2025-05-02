@@ -94,15 +94,11 @@ def toggle_task(task_id):
         today = date.today()
         today_str = today.strftime('%Y-%m-%d')
         
-        db = get_db()
         if new_status:  # If task is being marked as completed
-            db.execute('UPDATE tasks SET completed = ?, completion_date = ? WHERE id = ?', 
-                      (new_status, today_str, task_id))
+            update_task(task_id, {'completed': new_status, 'completion_date': today_str})
         else:  # If task is being marked as pending
-            db.execute('UPDATE tasks SET completed = ?, completion_date = NULL WHERE id = ?', 
-                      (new_status, task_id))
+            update_task(task_id, {'completed': new_status, 'completion_date': None})
         
-        db.commit()
         status_text = "completed" if new_status else "marked as pending"
         flash(f'Task {status_text}.', 'success')
     else:
@@ -177,10 +173,8 @@ def task_history(task_id):
 def update_next_action(task_id):
     """Update the next_action for a specific task."""
     next_action_text = request.form.get('next_action', '').strip()
-    db = get_db()
     try:
-        db.execute('UPDATE tasks SET next_action = ? WHERE id = ?', (next_action_text, task_id))
-        db.commit()
+        update_task(task_id, {'next_action': next_action_text})
         # Fetch the updated task data to pass to the partial
         updated_task = get_task(task_id)
         if updated_task:
@@ -190,7 +184,6 @@ def update_next_action(task_id):
              # Handle case where task might have been deleted in the meantime
              return "Task not found", 404
     except Exception as e:
-        db.rollback() # Rollback in case of error
         flash(f'Error updating next action: {str(e)}', 'error')
         # Return an error response, potentially triggering flash message display
         response = make_response("Error updating next action", 500)
@@ -235,13 +228,8 @@ def add_task_action(task_id):
         return '', 404
     
     # Add the action
-    db = get_db()
     today = date.today().strftime('%Y-%m-%d')
-    db.execute(
-        'INSERT INTO task_actions (task_id, action_description, action_date) VALUES (?, ?, ?)',
-        (task_id, action_description, today)
-    )
-    db.commit()
+    insert_action(task_id, action_description, today)
 
     actions = get_actions(task_id)
     
@@ -302,24 +290,19 @@ def snooze_task(task_id, days):
         new_due_date = current_due_date + timedelta(days=days)
         new_due_date_str = new_due_date.strftime('%Y-%m-%d')
 
-        db = get_db()
-        db.execute('UPDATE tasks SET due_date = ? WHERE id = ?', (new_due_date_str, task_id))
+        update_task(task_id, {'due_date': new_due_date_str})
         
+
         # Update next action if provided
         if next_action_text:
-             db.execute('UPDATE tasks SET next_action = ? WHERE id = ?', (next_action_text, task_id))
+             update_task(task_id, {'next_action': next_action_text})
 
         # Add an action entry for the snooze
         today = date.today().strftime('%Y-%m-%d')
         # Determine day string for flash message
         day_str = "day" if days == 1 else "days"
         
-        db.execute(
-            'INSERT INTO task_actions (task_id, action_description, action_date) VALUES (?, ?, ?)',
-            (task_id, action_description, today)
-        )
-        
-        db.commit()
+        insert_action(task_id, action_description, today)
         
         # Create a more descriptive message
         week_str = " (1 week)" if days == 7 else ""
@@ -386,15 +369,11 @@ def reset_date(task_id):
             pass
         
         # Update the task
-        db.execute('UPDATE tasks SET due_date = ? WHERE id = ?', (today_str, task_id))
+        update_task(task_id, {'due_date': today_str})
         
         # Add an action entry for resetting the date
-        db.execute(
-            'INSERT INTO task_actions (task_id, action_description, action_date) VALUES (?, ?, ?)',
-            (task_id, "Reset due date to today", today_str)
-        )
+        insert_action(task_id, "Reset due date to today", today_str)
         
-        db.commit()
         flash(f'Due date for task reset to today ({today.strftime("%d/%m/%Y")}).', 'success')
     else:
         flash('Task not found.', 'error')

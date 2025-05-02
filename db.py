@@ -185,3 +185,28 @@ def get_notes():
         notes.append(note_dict)
     
     return notes
+
+def insert_action(task_id, action_description, action_date):
+    db = get_db()
+    db.execute(
+        'INSERT INTO task_actions (task_id, action_description, action_date) VALUES (?, ?, ?)',
+        (task_id, action_description, action_date)
+    )
+    db.commit()
+
+def update_task(task_id, task_data):
+    db = get_db()
+    try:
+        for key, value in task_data.items():
+            if value is None:
+                task_data[key] = ""
+            
+            db.execute(
+                'UPDATE tasks SET ' + key + ' = ? WHERE id = ?',
+                (value, task_id)
+            )
+        
+        db.commit()
+    except Exception as e:
+        db.rollback() # Rollback in case of error
+        raise e
