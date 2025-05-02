@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, g, make_response, get_flashed_messages, flash, json, redirect, url_for
 from datetime import date, datetime, timedelta
 import notifications  # Import the entire module instead of specific function
-from db import get_db, get_task, get_activity_data, get_current_goal, get_tasks
+from db import get_db, get_task, get_activity_data, get_current_goal, get_tasks, get_actions
 from dotenv import load_dotenv
 import os
 
@@ -51,7 +51,6 @@ def make_task_list():
     tasks = get_tasks()
     current_goal = get_current_goal()
     return render_template('_tasks.html', tasks=tasks, current_goal=current_goal)
-
 
 @app.route('/add', methods=['POST'])
 def add_task():
@@ -161,53 +160,15 @@ def notify_task(task_id):
 @app.route('/task/<int:task_id>')
 def task_history(task_id):
     """Show task history page with all actions for a specific task."""
-    db = get_db()
     task = get_task(task_id) # get_task now fetches next_action too
 
     if not task:
-        flash('Task not found.', 'error')
-        # Consider redirecting to index or showing a dedicated error page
-        # For now, rendering index template with empty tasks as a fallback
-        cursor = db.execute('SELECT id, description, due_date, completed, goal_id FROM tasks ORDER BY due_date ASC')
-        tasks_raw = cursor.fetchall()
-        tasks = []
-        today = date.today()
-        for t in tasks_raw:
-            task_dict_item = dict(t)
-            try:
-                due_date_obj = datetime.strptime(t['due_date'], '%Y-%m-%d').date()
-                task_dict_item['due_date_display'] = due_date_obj.strftime('%d/%m/%Y')
-                task_dict_item['is_overdue'] = not t['completed'] and due_date_obj < today
-            except (ValueError, TypeError):
-                task_dict_item['due_date_display'] = "Invalid Date"
-                task_dict_item['is_overdue'] = False
-            tasks.append(task_dict_item)
-        current_goal = get_current_goal()
-        response = make_response(render_template('index.html', tasks=tasks, today=today, current_goal=current_goal))
-        response.headers['HX-Trigger'] = 'showFlash' # Trigger flash display if needed
-        return response
+        return redirect(url_for('index'))
 
     # Convert the task Row object to a dictionary to pass to the template
-    # This dictionary will include 'id', 'description', 'due_date', 'completed', 'last_notification', 'next_action'
     task_dict = dict(task)
 
-    # Fetch actions for the task
-    cursor = db.execute(
-        'SELECT id, action_description, action_date FROM task_actions WHERE task_id = ? ORDER BY action_date DESC',
-        (task_id,)
-    )
-    actions_raw = cursor.fetchall()
-
-    # Format actions data
-    actions = []
-    for action in actions_raw:
-        action_dict = dict(action)
-        try:
-            action_date_obj = datetime.strptime(action['action_date'], '%Y-%m-%d').date()
-            action_dict['action_date_display'] = action_date_obj.strftime('%d/%m/%Y')
-        except (ValueError, TypeError):
-            action_dict['action_date_display'] = "Invalid Date"
-        actions.append(action_dict)
+    actions = get_actions(task_id)
 
     # Render the task history template with task details and actions
     return render_template('task_history.html', task=task_dict, actions=actions)
@@ -268,11 +229,8 @@ def add_task_action(task_id):
         flash('Action description is required!', 'error')
         return '', 400
     
-    # Verify task exists
-    db = get_db()
-    cursor = db.execute('SELECT id FROM tasks WHERE id = ?', (task_id,))
-    task = cursor.fetchone()
-    
+    task = get_task(task_id)
+
     if not task:
         flash('Task not found.', 'error')
         return '', 404
@@ -284,26 +242,8 @@ def add_task_action(task_id):
         (task_id, action_description, today)
     )
     db.commit()
-    
-    # Get updated actions list
-    cursor = db.execute(
-        'SELECT id, action_description, action_date FROM task_actions WHERE task_id = ? ORDER BY action_date DESC',
-        (task_id,)
-    )
-    actions_raw = cursor.fetchall()
-    
-    # Format actions data
-    actions = []
-    for action in actions_raw:
-        action_dict = dict(action)
-        try:
-            # Parse DB date (YYYY-MM-DD)
-            action_date_obj = datetime.strptime(action['action_date'], '%Y-%m-%d').date()
-            # Format for display (DD/MM/YYYY)
-            action_dict['action_date_display'] = action_date_obj.strftime('%d/%m/%Y')
-        except (ValueError, TypeError):
-            action_dict['action_date_display'] = "Invalid Date"
-        actions.append(action_dict)
+
+    actions = get_actions(task_id)
     
     # Return the updated actions list partial
     return render_template('_actions.html', actions=actions)

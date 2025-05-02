@@ -134,3 +134,19 @@ def get_tasks(flask=True):
             task_dict['is_overdue'] = False
         tasks.append(task_dict)
     return tasks
+
+def get_actions(task_id):
+    db = get_db()
+    cursor = db.execute('SELECT id, action_description, action_date FROM task_actions WHERE task_id = ? ORDER BY action_date DESC', (task_id,))
+    actions_raw = cursor.fetchall()
+
+    actions = []
+    for action in actions_raw:
+        action_dict = dict(action)
+        try:
+            action_date_obj = datetime.strptime(action['action_date'], '%Y-%m-%d').date()
+            action_dict['action_date_display'] = action_date_obj.strftime('%d/%m/%Y')
+        except (ValueError, TypeError):
+            action_dict['action_date_display'] = "Invalid Date"
+        actions.append(action_dict)
+    return actions
