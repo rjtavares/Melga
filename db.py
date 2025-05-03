@@ -155,17 +155,26 @@ def get_tasks(flask=True):
     for task in tasks_raw:
         task_dict = dict(task) # Convert Row object to dict
         
-        # Parse the due date and format it for display
-        due_date_obj = parse_date(task['due_date'])
-        if due_date_obj:
-            # Format for display (DD/MMM)
-            task_dict['due_date_display'] = format_date(due_date_obj, '%d/%b')
-            task_dict['is_overdue'] = not task['completed'] and due_date_obj < today
+        # Check if completion date is earlier than today
+        if task['completion_date']:
+            completion_date_obj = parse_date(task['completion_date'])
+            earlier_than_today = completion_date_obj and completion_date_obj < today
         else:
-            task_dict['due_date_display'] = "Invalid Date"
-            task_dict['is_overdue'] = False
-            
-        tasks.append(task_dict)
+            earlier_than_today = False
+        
+        if not earlier_than_today:
+            # Parse the due date and format it for display
+            due_date_obj = parse_date(task['due_date'])
+
+            if due_date_obj:
+                # Format for display (DD/MMM)
+                task_dict['due_date_display'] = format_date(due_date_obj, '%d/%b')
+                task_dict['is_overdue'] = not task['completed'] and due_date_obj < today
+            else:
+                task_dict['due_date_display'] = "Invalid Date"
+                task_dict['is_overdue'] = False
+                
+            tasks.append(task_dict)
     
     return tasks
 
