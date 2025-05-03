@@ -210,7 +210,7 @@ def add_task_action(task_id):
         return '', 404
     
     # Add the action
-    today = date.today().strftime('%Y-%m-%d')
+    today = get_db_date()
     insert_action(task_id, action_description, today)
 
     actions = get_actions(task_id)
@@ -274,7 +274,7 @@ def snooze_task(task_id, days):
              update_task(task_id, {'next_action': next_action_text})
 
         # Add an action entry for the snooze
-        today = date.today()
+        today = get_db_date()
         
         # Determine day string for flash message
         day_str = "day" if days == 1 else "days"
