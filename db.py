@@ -97,6 +97,13 @@ def get_activity_data(days=21, flask=True):
         (start_date,)
     ).fetchall()
     
+    # Get notes for the period
+    notes = db.execute(
+        'SELECT created_date, COUNT(*) as count FROM notes '
+        'WHERE created_date >= ? GROUP BY created_date', 
+        (start_date,)
+    ).fetchall()
+
     # Get completed tasks for the period
     task_completions = db.execute(
         'SELECT completion_date, COUNT(*) as count FROM tasks '
@@ -115,6 +122,7 @@ def get_activity_data(days=21, flask=True):
     actions_dict = {row['action_date']: row['count'] for row in actions}
     task_completions_dict = {row['completion_date']: row['count'] for row in task_completions}
     goal_completions_dict = {row['completion_date']: row['count'] for row in goal_completions}
+    notes_dict = {row['created_date']: row['count'] for row in notes}
 
     result = {}
     # Create entries for each of the days
@@ -125,8 +133,10 @@ def get_activity_data(days=21, flask=True):
         actions_date = actions_dict.get(day_str, 0)
         task_completions_date = task_completions_dict.get(day_str, 0)
         goal_completions_date = goal_completions_dict.get(day_str, 0)
+        notes_date = notes_dict.get(day_str, 0)
 
-        result[day_str] = {"actions": actions_date, "completions": task_completions_date+goal_completions_date}
+        result[day_str] = {"actions": actions_date+notes_date,
+                           "completions": task_completions_date+goal_completions_date}
     
     return result
 
