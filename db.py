@@ -224,8 +224,8 @@ def update_table(table, id, data):
         for key, value in data.items():
             if isinstance(value, str): value = "'" + value + "'"
             if value is None: value = "NULL"
-            sql = f'UPDATE {table} SET {key} = {value} WHERE id = {id}'
-            db.execute(sql)
+            sql = f'UPDATE {table} SET {key} = ? WHERE id = ?'
+            db.execute(sql, (value, id))
         db.commit()
     except Exception as e:
         db.rollback() # Rollback in case of error
