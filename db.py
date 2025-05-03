@@ -300,15 +300,10 @@ def insert_task(description, due_date, goal_id=None):
     if isinstance(due_date, date):
         due_date = get_db_date(due_date)
         
-    if goal_id is None:
-        db.execute(
-            'INSERT INTO tasks (description, due_date) VALUES (?, ?)',
-            (description, due_date)
-        )
-    else:
-        db.execute(
-            'INSERT INTO tasks (description, due_date, goal_id) VALUES (?, ?, ?)',
-            (description, due_date, goal_id)
-        )
+    db.execute(
+        'INSERT INTO tasks (description, due_date, goal_id) VALUES (?, ?, ?)',
+        (description, due_date, goal_id)
+    )
+    
     db.commit()
     return True
