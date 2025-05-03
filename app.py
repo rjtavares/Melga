@@ -50,7 +50,9 @@ def make_task_list():
     """Endpoint to fetch the task list partial for HTMX updates."""
     tasks = get_tasks()
     current_goal = get_current_goal()
-    return render_template('_tasks.html', tasks=tasks, current_goal=current_goal)
+    response = make_response(render_template('_tasks.html', tasks=tasks, current_goal=current_goal))
+    response.headers['HX-Trigger'] = 'showFlash'
+    return response
 
 @app.route('/add', methods=['POST'])
 def add_task():
@@ -75,9 +77,8 @@ def add_task():
     flash('Task added successfully!', 'success')
 
     # Return the updated task list partial for HTMX
-    response = make_response(make_task_list())
-    response.headers['HX-Trigger'] = 'showFlash'
-    return response
+    return make_task_list()
+
 
 
 @app.route('/toggle/<int:task_id>', methods=['POST'])
@@ -99,9 +100,7 @@ def toggle_task(task_id):
         flash('Task not found.', 'error')
 
     # Return the updated task list partial for HTMX
-    response = make_response(make_task_list())
-    response.headers['HX-Trigger'] = 'showFlash'
-    return response
+    return make_task_list()
 
 
 @app.route('/delete/<int:task_id>', methods=['DELETE'])
@@ -110,9 +109,7 @@ def remove_task(task_id):
     flash('Task deleted.', 'info')
 
     # Return the updated task list partial for HTMX
-    response = make_response(make_task_list())
-    response.headers['HX-Trigger'] = 'showFlash'
-    return response
+    return make_task_list()
 
 
 @app.route('/notify/<int:task_id>', methods=['POST'])
@@ -137,9 +134,7 @@ def notify_task(task_id):
         flash(f'Error sending notification: {str(e)}', 'error')
     
     # Return a response with HX-Trigger to show flash messages
-    response = make_response('', 200)
-    response.headers['HX-Trigger'] = 'showFlash'
-    return response
+    return make_task_list()
 
 
 # --- Task History Routes ---
@@ -252,9 +247,7 @@ def snooze_task(task_id, days):
     # Don't allow snoozing without an action description
     if not action_description:
         flash('Action description is required to snooze a task.', 'error')
-        response = make_response(make_task_list())
-        response.headers['HX-Trigger'] = 'showFlash'
-        return response
+        return make_task_list()
     
     task = get_task(task_id)
 
@@ -262,9 +255,7 @@ def snooze_task(task_id, days):
         # Validate days input
         if days not in [1, 3, 7]:
             flash('Invalid snooze duration.', 'error')
-            response = make_response(make_task_list())
-            response.headers['HX-Trigger'] = 'showFlash'
-            return response
+            return make_task_list()
             
         # Get current due date or use today if no due date exists
         current_due_date = date.today()
@@ -300,9 +291,7 @@ def snooze_task(task_id, days):
         flash('Task not found.', 'error')
 
     # Return the updated task list partial for HTMX
-    response = make_response(make_task_list())
-    response.headers['HX-Trigger'] = 'showFlash'
-    return response
+    return make_task_list()
 
 
 @app.route('/flash-messages')
@@ -344,9 +333,7 @@ def reset_date(task_id):
             due_date = date.fromisoformat(task['due_date'])
             if due_date < today:
                 flash('Cannot reset date for overdue tasks.', 'error')
-                response = make_response(make_task_list())
-                response.headers['HX-Trigger'] = 'showFlash'
-                return response
+                return make_task_list()
         except (ValueError, TypeError):
             # If date format is invalid, proceed with reset
             pass
@@ -362,9 +349,7 @@ def reset_date(task_id):
         flash('Task not found.', 'error')
 
     # Return the updated task list partial for HTMX
-    response = make_response(make_task_list())
-    response.headers['HX-Trigger'] = 'showFlash'
-    return response
+    return make_task_list()
 
 
 @app.route('/goal/edit')
@@ -407,10 +392,6 @@ def complete_goal(goal_id):
     
     # Return the updated view
     return view_goal()
-    
-    # Return the updated view
-    return view_goal()
-
 
 # ----- Notes Routes -----
 @app.route('/notes/new')

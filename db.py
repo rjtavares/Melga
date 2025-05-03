@@ -188,24 +188,6 @@ def insert_action(task_id, action_description, action_date):
     db.commit()
     return True
 
-def update_task(task_id, task_data):
-    db = get_db()
-    try:
-        for key, value in task_data.items():
-            if value is None:
-                task_data[key] = ""
-            
-            db.execute(
-                'UPDATE tasks SET ' + key + ' = ? WHERE id = ?',
-                (value, task_id)
-            )
-        
-        db.commit()
-        return True
-    except Exception as e:
-        db.rollback() # Rollback in case of error
-        raise e
-
 def delete_task(task_id):
     db = get_db()
     db.execute('DELETE FROM tasks WHERE id = ?', (task_id,))
@@ -224,41 +206,31 @@ def delete_note(note_id):
     db.commit()
     return True
 
+def update_task(task_id, task_data):
+    update_table('tasks', task_id, task_data)
+    return True
+
 def update_note(note_id, note_data):
+    update_table('notes', note_id, note_data)
+    return True
+
+def update_goal(goal_id, goal_data):
+    update_table('goals', goal_id, goal_data)
+    return True
+
+def update_table(table, id, data):
     db = get_db()
     try:
-        for key, value in note_data.items():
-            if value is None:
-                note_data[key] = ""
-            
-            db.execute(
-                'UPDATE notes SET ' + key + ' = ? WHERE id = ?',
-                (value, note_id)
-            )
-        
+        for key, value in data.items():
+            if isinstance(value, str): value = "'" + value + "'"
+            if value is None: value = "NULL"
+            sql = f'UPDATE {table} SET {key} = {value} WHERE id = {id}'
+            db.execute(sql)
         db.commit()
-        return True
     except Exception as e:
         db.rollback() # Rollback in case of error
         raise e
 
-def update_goal(goal_id, goal_data):
-    db = get_db()
-    try:
-        for key, value in goal_data.items():
-            if value is None:
-                goal_data[key] = ""
-            
-            db.execute(
-                'UPDATE goals SET ' + key + ' = ? WHERE id = ?',
-                (value, goal_id)
-            )
-        
-        db.commit()
-        return True
-    except Exception as e:
-        db.rollback() # Rollback in case of error
-        raise e
 
 def insert_goal(description, created_date, target_date):
     db = get_db()
