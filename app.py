@@ -60,10 +60,9 @@ def add_task():
     due_date_str_input = request.form['due_date'] # Input is YYYY-MM-DD from HTML date input
     link_to_goal = request.form.get('link_goal')
 
-    try:
-        # Parse the input date (YYYY-MM-DD)
-        due_date_db_format = datetime.strptime(due_date_str_input, '%Y-%m-%d').date()
-    except ValueError:
+    # Parse the input date using our utility function
+    due_date_obj = parse_date(due_date_str_input)
+    if not due_date_obj:
         flash('Invalid date format.', 'error')
         return make_task_list() # Return updated list to show flash
 
@@ -73,7 +72,7 @@ def add_task():
         if current_goal:
             goal_id = current_goal['id']
     
-    insert_task(description, due_date_db_format, goal_id)
+    insert_task(description, due_date_obj, goal_id)
     flash('Task added successfully!', 'success')
 
     # Return the updated task list partial for HTMX
@@ -87,10 +86,9 @@ def toggle_task(task_id):
     if task:
         new_status = not task['completed']
         today = date.today()
-        today_str = today.strftime('%Y-%m-%d')
         
         if new_status:  # If task is being marked as completed
-            update_task(task_id, {'completed': new_status, 'completion_date': today_str})
+            update_task(task_id, {'completed': new_status, 'completion_date': get_db_date(today)})
         else:  # If task is being marked as pending
             update_task(task_id, {'completed': new_status, 'completion_date': None})
         
@@ -260,33 +258,33 @@ def snooze_task(task_id, days):
         # Get current due date or use today if no due date exists
         current_due_date = date.today()
         if task['due_date']:
-            try:
-                current_due_date = date.fromisoformat(task['due_date'])
-            except ValueError:
-                # If due date is invalid, fall back to today
-                pass
+            # Use our parse_date utility to safely parse the date
+            parsed_date = parse_date(task['due_date'])
+            if parsed_date:
+                current_due_date = parsed_date
                 
         # Add days to the current due date
         new_due_date = current_due_date + timedelta(days=days)
-        new_due_date_str = new_due_date.strftime('%Y-%m-%d')
-
-        update_task(task_id, {'due_date': new_due_date_str})
         
+        # Update the task with the new due date using our standardized format
+        update_task(task_id, {'due_date': get_db_date(new_due_date)})
 
         # Update next action if provided
         if next_action_text:
              update_task(task_id, {'next_action': next_action_text})
 
         # Add an action entry for the snooze
-        today = date.today().strftime('%Y-%m-%d')
+        today = date.today()
+        
         # Determine day string for flash message
         day_str = "day" if days == 1 else "days"
         
         insert_action(task_id, action_description, today)
         
-        # Create a more descriptive message
+        # Create a more descriptive message with formatted date display
         week_str = " (1 week)" if days == 7 else ""
-        flash(f'Task snoozed for {days} {day_str}{week_str} until {new_due_date.strftime("%d/%m/%Y")}.', 'success')
+        formatted_due_date = format_date(new_due_date, DATE_DISPLAY_FORMAT)
+        flash(f'Task snoozed for {days} {day_str}{week_str} until {formatted_due_date}.', 'success')
     else:
         flash('Task not found.', 'error')
 
@@ -327,24 +325,22 @@ def reset_date(task_id):
     if task:
         # Check if task is overdue
         today = date.today()
-        today_str = today.strftime('%Y-%m-%d')
         
-        try:
-            due_date = date.fromisoformat(task['due_date'])
-            if due_date < today:
-                flash('Cannot reset date for overdue tasks.', 'error')
-                return make_task_list()
-        except (ValueError, TypeError):
-            # If date format is invalid, proceed with reset
-            pass
+        # Parse the task's due date using our utility
+        due_date = parse_date(task['due_date'])
+        if due_date and due_date < today:
+            flash('Cannot reset date for overdue tasks.', 'error')
+            return make_task_list()
         
-        # Update the task
-        update_task(task_id, {'due_date': today_str})
+        # Update the task with today's date
+        today_db_format = get_db_date(today)
+        update_task(task_id, {'due_date': today_db_format})
         
         # Add an action entry for resetting the date
-        insert_action(task_id, "Reset due date to today", today_str)
+        insert_action(task_id, "Reset due date to today", today)
         
-        flash(f'Due date for task reset to today ({today.strftime("%d/%m/%Y")}).', 'success')
+        formatted_date = format_date(today)
+        flash(f'Due date for task reset to today ({formatted_date}).', 'success')
     else:
         flash('Task not found.', 'error')
 
@@ -375,8 +371,10 @@ def update_goal():
             update_goal(current_goal['id'], {'description': goal_description})
     elif goal_description:
         # Create new goal
-        target_date = (date.today() + timedelta(days=30)).isoformat()  # Default target date 30 days from now
-        insert_goal(goal_description, date.today().isoformat(), target_date)
+        today = date.today()
+        # Default target date 30 days from now
+        target_date = today + timedelta(days=30)
+        insert_goal(goal_description, today, target_date)
     
     flash('Goal updated successfully', 'success')
     
@@ -386,7 +384,7 @@ def update_goal():
 @app.route('/goal/complete/<int:goal_id>', methods=['POST'])
 def complete_goal(goal_id):
     # Mark the goal as completed
-    update_goal(goal_id, {'completed': 1, 'completion_date': date.today().isoformat()})
+    update_goal(goal_id, {'completed': 1, 'completion_date': get_db_date(date.today())})
     
     flash('Goal marked as completed!', 'success')
     
@@ -432,12 +430,8 @@ def view_note(note_id):
         flash('Note not found.', 'error')
         return redirect(url_for('view_notes'))
         
-    # Format the date
-    try:
-        created_date_obj = datetime.strptime(note['created_date'], '%Y-%m-%d').date()
-        note['created_date'] = created_date_obj.strftime('%d %b %Y')
-    except (ValueError, TypeError):
-        note['created_date'] = "Unknown Date"
+    # Format the date using our utility function
+    note['created_date'] = get_display_date(note['created_date'], short=True)
     
     return render_template('note_view.html', note=note)
 

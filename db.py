@@ -4,6 +4,44 @@ from datetime import date, timedelta, datetime
 
 DATABASE = 'tasks.db'
 
+# Date format constants
+DATE_DB_FORMAT = '%Y-%m-%d'  # Format for storing dates in the database
+DATE_DISPLAY_FORMAT = '%d/%m/%Y'  # Default format for displaying dates to users
+DATE_DISPLAY_SHORT = '%d %b %Y'  # Short format with month name
+
+def format_date(date_obj, format_str=DATE_DISPLAY_FORMAT):
+    """Convert a date object to a formatted string."""
+    if not date_obj:
+        return None
+    return date_obj.strftime(format_str)
+
+def parse_date(date_str, format_str=DATE_DB_FORMAT):
+    """Parse a date string into a date object."""
+    if not date_str:
+        return None
+    try:
+        return datetime.strptime(date_str, format_str).date()
+    except ValueError:
+        return None
+
+def get_db_date(date_obj=None):
+    """Convert a date object to database format string."""
+    if date_obj is None:
+        date_obj = date.today()
+    return format_date(date_obj, DATE_DB_FORMAT)
+
+def get_display_date(date_str, short=False):
+    """Convert a database date string to display format."""
+    if not date_str:
+        return "Unknown Date"
+    
+    date_obj = parse_date(date_str)
+    if not date_obj:
+        return "Invalid Date"
+    
+    format_str = DATE_DISPLAY_SHORT if short else DATE_DISPLAY_FORMAT
+    return format_date(date_obj, format_str)
+
 def get_db(flask=True):
     if flask:
         db = getattr(g, '_database', None)
@@ -52,7 +90,7 @@ def get_activity_data(days=21, flask=True):
     db = get_db(flask=flask)
     
     # Get task actions for the period
-    start_date = (today - timedelta(days=days-1)).strftime('%Y-%m-%d')
+    start_date = get_db_date(today - timedelta(days=days-1))
     actions = db.execute(
         'SELECT action_date, COUNT(*) as count FROM task_actions '
         'WHERE action_date >= ? GROUP BY action_date', 
@@ -82,7 +120,7 @@ def get_activity_data(days=21, flask=True):
     # Create entries for each of the days
     for i in range(days):
         day = today - timedelta(days=i) 
-        day_str = day.strftime('%Y-%m-%d')
+        day_str = get_db_date(day)
 
         actions_date = actions_dict.get(day_str, 0)
         task_completions_date = task_completions_dict.get(day_str, 0)
@@ -109,23 +147,26 @@ def get_current_goal():
 
 def get_tasks(flask=True):
     db = get_db(flask=flask)
-    cursor = db.execute('SELECT id, description, due_date, completed, goal_id FROM tasks ORDER BY due_date ASC')
+    cursor = db.execute('SELECT id, description, due_date, completed, goal_id, completion_date, next_action FROM tasks ORDER BY due_date ASC')
     tasks_raw = cursor.fetchall()
 
     tasks = []
     today = date.today()
     for task in tasks_raw:
         task_dict = dict(task) # Convert Row object to dict
-        try:
-            # Parse DB date (YYYY-MM-DD)
-            due_date_obj = datetime.strptime(task['due_date'], '%Y-%m-%d').date()
+        
+        # Parse the due date and format it for display
+        due_date_obj = parse_date(task['due_date'])
+        if due_date_obj:
             # Format for display (DD/MMM)
-            task_dict['due_date_display'] = due_date_obj.strftime('%d/%b')
+            task_dict['due_date_display'] = format_date(due_date_obj, '%d/%b')
             task_dict['is_overdue'] = not task['completed'] and due_date_obj < today
-        except (ValueError, TypeError):
+        else:
             task_dict['due_date_display'] = "Invalid Date"
             task_dict['is_overdue'] = False
+            
         tasks.append(task_dict)
+    
     return tasks
 
 def get_actions(task_id):
@@ -136,11 +177,7 @@ def get_actions(task_id):
     actions = []
     for action in actions_raw:
         action_dict = dict(action)
-        try:
-            action_date_obj = datetime.strptime(action['action_date'], '%Y-%m-%d').date()
-            action_dict['action_date_display'] = action_date_obj.strftime('%d/%m/%Y')
-        except (ValueError, TypeError):
-            action_dict['action_date_display'] = "Invalid Date"
+        action_dict['action_date_display'] = get_display_date(action['action_date'])
         actions.append(action_dict)
     return actions
 
@@ -164,12 +201,8 @@ def get_notes():
     notes = []
     for note in notes_raw:
         note_dict = dict(note)
-        # Format the date
-        try:
-            created_date_obj = datetime.strptime(note['created_date'], '%Y-%m-%d').date()
-            note_dict['created_date'] = created_date_obj.strftime('%d %b %Y')
-        except (ValueError, TypeError):
-            note_dict['created_date'] = "Unknown Date"
+        # Format the date using our utility function
+        note_dict['created_date'] = get_display_date(note['created_date'], short=True)
         
         # Truncate note preview
         if len(note_dict['note']) > 150:
@@ -181,6 +214,9 @@ def get_notes():
 
 def insert_action(task_id, action_description, action_date):
     db = get_db()
+    # Ensure action_date is in database format
+    if isinstance(action_date, date):
+        action_date = get_db_date(action_date)
     db.execute(
         'INSERT INTO task_actions (task_id, action_description, action_date) VALUES (?, ?, ?)',
         (task_id, action_description, action_date)
@@ -222,8 +258,6 @@ def update_table(table, id, data):
     db = get_db()
     try:
         for key, value in data.items():
-            if isinstance(value, str): value = "'" + value + "'"
-            if value is None: value = "NULL"
             sql = f'UPDATE {table} SET {key} = ? WHERE id = ?'
             db.execute(sql, (value, id))
         db.commit()
@@ -234,6 +268,12 @@ def update_table(table, id, data):
 
 def insert_goal(description, created_date, target_date):
     db = get_db()
+    # Ensure dates are in database format
+    if isinstance(created_date, date):
+        created_date = get_db_date(created_date)
+    if isinstance(target_date, date):
+        target_date = get_db_date(target_date)
+        
     db.execute(
         'INSERT INTO goals (description, created_date, target_date, completed) VALUES (?, ?, ?, 0)',
         (description, created_date, target_date)
@@ -243,6 +283,10 @@ def insert_goal(description, created_date, target_date):
 
 def insert_note(title, note_content, note_type, created_date):
     db = get_db()
+    # Ensure created_date is in database format
+    if isinstance(created_date, date):
+        created_date = get_db_date(created_date)
+        
     db.execute(
         'INSERT INTO notes (title, note, type, created_date) VALUES (?, ?, ?, ?)',
         (title, note_content, note_type, created_date)
@@ -252,6 +296,10 @@ def insert_note(title, note_content, note_type, created_date):
 
 def insert_task(description, due_date, goal_id=None):
     db = get_db()
+    # Ensure due_date is in database format
+    if isinstance(due_date, date):
+        due_date = get_db_date(due_date)
+        
     if goal_id is None:
         db.execute(
             'INSERT INTO tasks (description, due_date) VALUES (?, ?)',
