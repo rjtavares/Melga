@@ -65,19 +65,13 @@ def add_task():
         flash('Invalid date format.', 'error')
         return make_task_list() # Return updated list to show flash
 
-    db = get_db()
     goal_id = None
     if link_to_goal:
         current_goal = get_current_goal()
         if current_goal:
             goal_id = current_goal['id']
-    if goal_id is not None:
-        db.execute('INSERT INTO tasks (description, due_date, goal_id) VALUES (?, ?, ?)',
-                   (description, due_date_db_format, goal_id))
-    else:
-        db.execute('INSERT INTO tasks (description, due_date) VALUES (?, ?)',
-                   (description, due_date_db_format))
-    db.commit()
+    
+    insert_task(description, due_date_db_format, goal_id)
     flash('Task added successfully!', 'success')
 
     # Return the updated task list partial for HTMX
@@ -111,10 +105,8 @@ def toggle_task(task_id):
 
 
 @app.route('/delete/<int:task_id>', methods=['DELETE'])
-def delete_task(task_id):
-    db = get_db()
-    db.execute('DELETE FROM tasks WHERE id = ?', (task_id,))
-    db.commit()
+def remove_task(task_id):
+    delete_task(task_id)
     flash('Task deleted.', 'info')
 
     # Return the updated task list partial for HTMX
@@ -155,18 +147,15 @@ def notify_task(task_id):
 @app.route('/task/<int:task_id>')
 def task_history(task_id):
     """Show task history page with all actions for a specific task."""
-    task = get_task(task_id) # get_task now fetches next_action too
+    task = get_task(task_id)
 
     if not task:
         return redirect(url_for('index'))
 
-    # Convert the task Row object to a dictionary to pass to the template
-    task_dict = dict(task)
-
     actions = get_actions(task_id)
 
     # Render the task history template with task details and actions
-    return render_template('task_history.html', task=task_dict, actions=actions)
+    return render_template('task_history.html', task=task, actions=actions)
 
 
 @app.route('/task/<int:task_id>/next_action', methods=['POST'])
@@ -196,7 +185,7 @@ def get_edit_next_action_form(task_id):
     """Serve the partial template containing the form to edit next_action."""
     task = get_task(task_id)
     if task:
-        return render_template('_next_action_edit.html', task=dict(task))
+        return render_template('_next_action_edit.html', task=task)
     else:
         # Optionally return an error snippet or handle appropriately
         return "Task not found", 404
@@ -207,7 +196,7 @@ def get_view_next_action(task_id):
     """Serve the partial template for viewing next_action."""
     task = get_task(task_id)
     if task:
-        return render_template('_next_action_view.html', task=dict(task))
+        return render_template('_next_action_view.html', task=task)
     else:
         return "Task not found", 404
 
@@ -325,7 +314,7 @@ def get_flash_messages():
 
 
 @app.route('/task/action/<int:action_id>/delete', methods=['DELETE'])
-def delete_action(action_id):
+def remove_action(action_id):
     """Delete a specific action from a task."""
     
     action = get_action(action_id)
@@ -333,14 +322,8 @@ def delete_action(action_id):
     if not action:
         return render_template('_actions.html', actions=[]), 404
     
-    print(action)
     task_id = action['task_id']
-    
-    # Delete the action
-    db = get_db()
-    db.execute('DELETE FROM task_actions WHERE id = ?', (action_id,))
-    db.commit()
-    
+    delete_action(action_id)
     actions = get_actions(task_id)
     
     # Return the updated actions list partial
@@ -397,29 +380,19 @@ def view_goal():
 @app.route('/goal/update', methods=['POST'])
 def update_goal():
     goal_description = request.form.get('goal_description', '').strip()
-    db = get_db()
-    cursor = db.cursor()
-    
+
     # Get current goal if exists
     current_goal = get_current_goal()
     
     if current_goal:
         # Update existing goal
         if goal_description:
-            cursor.execute('''
-                UPDATE goals
-                SET description = ?
-                WHERE id = ?
-            ''', (goal_description, current_goal['id']))
+            update_goal(current_goal['id'], {'description': goal_description})
     elif goal_description:
         # Create new goal
         target_date = (date.today() + timedelta(days=30)).isoformat()  # Default target date 30 days from now
-        cursor.execute('''
-            INSERT INTO goals (description, created_date, target_date, completed)
-            VALUES (?, ?, ?, 0)
-        ''', (goal_description, date.today().isoformat(), target_date))
+        insert_goal(goal_description, date.today().isoformat(), target_date)
     
-    db.commit()
     flash('Goal updated successfully', 'success')
     
     # Return the updated view
@@ -427,18 +400,13 @@ def update_goal():
 
 @app.route('/goal/complete/<int:goal_id>', methods=['POST'])
 def complete_goal(goal_id):
-    db = get_db()
-    cursor = db.cursor()
-    
     # Mark the goal as completed
-    cursor.execute('''
-        UPDATE goals
-        SET completed = 1, completion_date = ?
-        WHERE id = ?
-    ''', (date.today().isoformat(), goal_id))
+    update_goal(goal_id, {'completed': 1, 'completion_date': date.today().isoformat()})
     
-    db.commit()
     flash('Goal marked as completed!', 'success')
+    
+    # Return the updated view
+    return view_goal()
     
     # Return the updated view
     return view_goal()
@@ -461,14 +429,9 @@ def save_note():
         flash('Title and note content are required!', 'error')
         return redirect(url_for('new_note'))
     
-    db = get_db()
     today = date.today()
     
-    db.execute(
-        'INSERT INTO notes (title, note, type, created_date) VALUES (?, ?, ?, ?)',
-        (title, note_content, note_type, today)
-    )
-    db.commit()
+    insert_note(title, note_content, note_type, today)
     
     flash('Note saved successfully!', 'success')
     return redirect(url_for('view_notes'))
@@ -500,7 +463,6 @@ def view_note(note_id):
 @app.route('/notes/edit/<int:note_id>', methods=['GET', 'POST'])
 def edit_note(note_id):
     """Route to edit a note."""
-    db = get_db()
     
     if request.method == 'POST':
         title = request.form.get('title')
@@ -511,11 +473,7 @@ def edit_note(note_id):
             flash('Title and note content are required!', 'error')
             return redirect(url_for('edit_note', note_id=note_id))
         
-        db.execute(
-            'UPDATE notes SET title = ?, note = ?, type = ? WHERE id = ?',
-            (title, note_content, note_type, note_id)
-        )
-        db.commit()
+        update_note(note_id, {'title': title, 'note': note_content, 'type': note_type})
         
         flash('Note updated successfully!', 'success')
         return redirect(url_for('view_note', note_id=note_id))
@@ -530,9 +488,8 @@ def edit_note(note_id):
     return render_template('notes_editor.html', note=note, edit_mode=True)
 
 @app.route('/notes/delete/<int:note_id>')
-def delete_note(note_id):
+def remove_note(note_id):
     """Route to delete a note."""
-    db = get_db()
     
     # Check if the note exists
     note = get_note(note_id)
@@ -540,9 +497,7 @@ def delete_note(note_id):
     if not note:
         flash('Note not found.', 'error')
     else:
-        # Delete the note
-        db.execute('DELETE FROM notes WHERE id = ?', (note_id,))
-        db.commit()
+        delete_note(note_id)
         flash('Note deleted successfully!', 'success')
     
     return redirect(url_for('view_notes'))
@@ -550,11 +505,7 @@ def delete_note(note_id):
 @app.route('/notes/delete/<int:note_id>', methods=['DELETE'])
 def delete_note_htmx(note_id):
     """Route to handle HTMX delete requests for notes."""
-    db = get_db()
-    
-    # Delete the note
-    db.execute('DELETE FROM notes WHERE id = ?', (note_id,))
-    db.commit()
+    delete_note(note_id)
     
     # No content response for HTMX delete
     return "", 204

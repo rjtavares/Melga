@@ -20,7 +20,7 @@ def get_task(task_id):
     db = get_db()
     cursor = db.execute('SELECT id, description, due_date, completed, last_notification, next_action FROM tasks WHERE id = ?', (task_id,))
     task = cursor.fetchone()
-    return task
+    return dict(task)
 
 def get_overdue_tasks():
     db = get_db(flask=False)
@@ -104,14 +104,7 @@ def get_current_goal():
     ''')
     goal = cursor.fetchone()
     if goal:
-        return {
-            'id': goal[0],
-            'description': goal[1],
-            'created_date': goal[2],
-            'target_date': goal[3],
-            'completed': bool(goal[4]),
-            'completion_date': goal[5]
-        }
+        return dict(goal)
     return None
 
 def get_tasks(flask=True):
@@ -193,6 +186,7 @@ def insert_action(task_id, action_description, action_date):
         (task_id, action_description, action_date)
     )
     db.commit()
+    return True
 
 def update_task(task_id, task_data):
     db = get_db()
@@ -207,6 +201,94 @@ def update_task(task_id, task_data):
             )
         
         db.commit()
+        return True
     except Exception as e:
         db.rollback() # Rollback in case of error
         raise e
+
+def delete_task(task_id):
+    db = get_db()
+    db.execute('DELETE FROM tasks WHERE id = ?', (task_id,))
+    db.commit()
+    return True
+
+def delete_action(action_id):
+    db = get_db()
+    db.execute('DELETE FROM task_actions WHERE id = ?', (action_id,))
+    db.commit()
+    return True
+
+def delete_note(note_id):
+    db = get_db()
+    db.execute('DELETE FROM notes WHERE id = ?', (note_id,))
+    db.commit()
+    return True
+
+def update_note(note_id, note_data):
+    db = get_db()
+    try:
+        for key, value in note_data.items():
+            if value is None:
+                note_data[key] = ""
+            
+            db.execute(
+                'UPDATE notes SET ' + key + ' = ? WHERE id = ?',
+                (value, note_id)
+            )
+        
+        db.commit()
+        return True
+    except Exception as e:
+        db.rollback() # Rollback in case of error
+        raise e
+
+def update_goal(goal_id, goal_data):
+    db = get_db()
+    try:
+        for key, value in goal_data.items():
+            if value is None:
+                goal_data[key] = ""
+            
+            db.execute(
+                'UPDATE goals SET ' + key + ' = ? WHERE id = ?',
+                (value, goal_id)
+            )
+        
+        db.commit()
+        return True
+    except Exception as e:
+        db.rollback() # Rollback in case of error
+        raise e
+
+def insert_goal(description, created_date, target_date):
+    db = get_db()
+    db.execute(
+        'INSERT INTO goals (description, created_date, target_date, completed) VALUES (?, ?, ?, 0)',
+        (description, created_date, target_date)
+    )
+    db.commit()
+    return True
+
+def insert_note(title, note_content, note_type, created_date):
+    db = get_db()
+    db.execute(
+        'INSERT INTO notes (title, note, type, created_date) VALUES (?, ?, ?, ?)',
+        (title, note_content, note_type, created_date)
+    )
+    db.commit()
+    return True
+
+def insert_task(description, due_date, goal_id=None):
+    db = get_db()
+    if goal_id is None:
+        db.execute(
+            'INSERT INTO tasks (description, due_date) VALUES (?, ?)',
+            (description, due_date)
+        )
+    else:
+        db.execute(
+            'INSERT INTO tasks (description, due_date, goal_id) VALUES (?, ?, ?)',
+            (description, due_date, goal_id)
+        )
+    db.commit()
+    return True
