@@ -193,7 +193,7 @@ def get_priority_task():
     db = get_db()
     # Query for incomplete tasks with priority=1, ordered by due date
     cursor = db.execute(
-        'SELECT id, description, due_date FROM tasks '
+        'SELECT id, description, due_date, next_action FROM tasks '
         'WHERE completed = 0 AND priority = 1 '
         'ORDER BY due_date ASC LIMIT 1'
     )

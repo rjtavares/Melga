@@ -624,7 +624,8 @@ h1 {
 
 .priority-task-link {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
+    align-items: center;
     background-color: white;
     color: var(--text-color);
     text-decoration: none;
@@ -642,9 +643,18 @@ h1 {
     margin-right: 0.5rem;
 }
 
+.priority-task-next-action {
+    font-size: 0.85rem;
+    color: #666;
+    display: inline;
+    font-style: italic;
+    margin-right: 0.5rem;
+}
+
 .priority-task-due {
     font-size: 0.85rem;
     color: var(--muted-color);
+    margin-left: auto;
 }
 
 .no-priority-task {
@@ -658,8 +668,8 @@ h1 {
 .complete-priority-task-btn {
     width: 1.75rem;
     height: 1.75rem;
-    padding: 0;
-    border-radius: 50%;
+    padding: 0.2rem 0.5rem;
+    border-radius: 0.25rem;
     font-size: 0.85rem;
     display: flex;
     justify-content: center;

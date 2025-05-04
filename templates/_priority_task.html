@@ -4,6 +4,7 @@
     <div class="priority-task-content">
         <a href="/task/{{ priority_task.id }}" class="priority-task-link">
             <span class="priority-task-description">{{ priority_task.description }}</span>
+            {% if priority_task.next_action %}<span class="priority-task-next-action"> | Next: {{ priority_task.next_action }}</span>{% endif %}
             <span class="priority-task-due">{{ priority_task.due_date_display }}</span>
         </a>
         <button class="complete-priority-task-btn"
