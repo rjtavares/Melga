@@ -157,7 +157,7 @@ def get_current_goal():
 
 def get_tasks(flask=True):
     db = get_db(flask=flask)
-    cursor = db.execute('SELECT id, description, due_date, completed, goal_id, completion_date, next_action FROM tasks ORDER BY due_date ASC')
+    cursor = db.execute('SELECT id, description, due_date, completed, goal_id, completion_date, next_action, priority FROM tasks ORDER BY due_date ASC')
     tasks_raw = cursor.fetchall()
 
     tasks = []
@@ -187,6 +187,31 @@ def get_tasks(flask=True):
             tasks.append(task_dict)
     
     return tasks
+
+def get_priority_task():
+    """Get the highest priority task with the earliest due date."""
+    db = get_db()
+    # Query for incomplete tasks with priority=1, ordered by due date
+    cursor = db.execute(
+        'SELECT id, description, due_date FROM tasks '
+        'WHERE completed = 0 AND priority = 1 '
+        'ORDER BY due_date ASC LIMIT 1'
+    )
+    task = cursor.fetchone()
+    
+    if not task:
+        return None
+    
+    task_dict = dict(task)
+    
+    # Format the due date for display
+    due_date_obj = parse_date(task['due_date'])
+    if due_date_obj:
+        task_dict['due_date_display'] = format_date(due_date_obj, '%d/%b')
+    else:
+        task_dict['due_date_display'] = "Unknown"
+    
+    return task_dict
 
 def get_actions(task_id):
     db = get_db()

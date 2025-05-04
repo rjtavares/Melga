@@ -173,6 +173,18 @@
             });
         });
         
+        // Refresh the goal section when priority task changes
+        document.body.addEventListener('refreshGoalSection', function(evt) {
+            // Fetch and display updated goal section with new priority task
+            htmx.ajax('GET', '/goal/view', {target: '#current-goal-section', swap: 'outerHTML'});
+        });
+        
+        // Refresh just the priority task container
+        document.body.addEventListener('refreshPriorityTask', function(evt) {
+            // Fetch and display updated priority task container
+            htmx.ajax('GET', '/priority-task', {target: '#priority-task-container', swap: 'innerHTML'});
+        });
+        
         // Handle modal events
         document.body.addEventListener('htmx:afterSwap', function(evt) {
             // Check if modal content was loaded

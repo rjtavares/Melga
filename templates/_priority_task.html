@@ -1,0 +1,23 @@
+{% if priority_task %}
+<div class="priority-task">
+    <div class="priority-task-badge">⭐ Priority</div>
+    <div class="priority-task-content">
+        <a href="/task/{{ priority_task.id }}" class="priority-task-link">
+            <span class="priority-task-description">{{ priority_task.description }}</span>
+            <span class="priority-task-due">{{ priority_task.due_date_display }}</span>
+        </a>
+        <button class="complete-priority-task-btn"
+                hx-post="/toggle/{{ priority_task.id }}"
+                hx-target="#task-list-container"
+                hx-swap="innerHTML"
+                hx-trigger="click"
+                title="Mark task as complete">
+            ✓
+        </button>
+    </div>
+</div>
+{% else %}
+<div class="no-priority-task">
+    <em>No priority tasks</em>
+</div>
+{% endif %}

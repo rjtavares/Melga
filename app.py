@@ -40,8 +40,12 @@ def index():
         last_21_days.append(day_info)
 
     current_goal = get_current_goal()
+    
+    # Get the highest priority task
+    priority_task = get_priority_task()
 
-    return render_template('index.html', tasks=tasks, today=today, activity_data=last_21_days, current_goal=current_goal)
+    return render_template('index.html', tasks=tasks, today=today, activity_data=last_21_days, 
+                           current_goal=current_goal, priority_task=priority_task)
 
 
 # --- HTMX Routes ---
@@ -97,8 +101,20 @@ def toggle_task(task_id):
     else:
         flash('Task not found.', 'error')
 
-    # Return the updated task list partial for HTMX
-    return make_task_list()
+    # Get the updated list of tasks and priority task for the response
+    tasks = get_tasks()
+    current_goal = get_current_goal()
+    priority_task = get_priority_task()
+    
+    # Create response with both task list and HX-Trigger for goal refresh
+    response = make_response(render_template('_tasks.html', tasks=tasks, current_goal=current_goal))
+    response.headers['HX-Trigger'] = json.dumps({
+        'showFlash': True,
+        'refreshGoalSection': {'priority_task': priority_task is not None},
+        'refreshPriorityTask': True
+    })
+    
+    return response
 
 
 @app.route('/delete/<int:task_id>', methods=['DELETE'])
@@ -356,7 +372,14 @@ def edit_goal():
 @app.route('/goal/view')
 def view_goal():
     current_goal = get_current_goal()
-    return render_template('_goal_view.html', current_goal=current_goal)
+    priority_task = get_priority_task()
+    return render_template('_goal_view.html', current_goal=current_goal, priority_task=priority_task)
+
+@app.route('/priority-task')
+def get_priority_task_container():
+    """Return the priority task container HTML for HTMX updates."""
+    priority_task = get_priority_task()
+    return render_template('_priority_task.html', priority_task=priority_task)
 
 @app.route('/goal/update', methods=['POST'])
 def update_goal():

@@ -590,6 +590,92 @@ h1 {
     border-left: 4px solid #3cb371;
 }
 
+/* Priority Task Display */
+.priority-task-container {
+    margin-top: 0.5rem;
+    border-radius: 0.5rem;
+    background-color: var(--card-background-color);
+    border-left: 3px solid var(--yellow);
+    padding: 0.5rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+.priority-task {
+    display: flex;
+    flex-direction: column;
+}
+
+.priority-task-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.priority-task-badge {
+    font-size: 0.8rem;
+    color: black;
+    background-color: var(--yellow);
+    display: inline-block;
+    padding: 0.1rem 0.5rem;
+    border-radius: 0.25rem;
+    margin-bottom: 0.3rem;
+    align-self: flex-start;
+}
+
+.priority-task-link {
+    display: flex;
+    justify-content: space-between;
+    background-color: white;
+    color: var(--text-color);
+    text-decoration: none;
+    padding: 0.2rem 0;
+    flex-grow: 1;
+    margin-right: 0.5rem;
+}
+
+.priority-task-link:hover {
+    text-decoration: underline;
+}
+
+.priority-task-description {
+    font-weight: 600;
+    margin-right: 0.5rem;
+}
+
+.priority-task-due {
+    font-size: 0.85rem;
+    color: var(--muted-color);
+}
+
+.no-priority-task {
+    font-size: 0.9rem;
+    color: var(--muted-color);
+    text-align: center;
+    padding: 0.5rem 0;
+    font-style: italic;
+}
+
+.complete-priority-task-btn {
+    width: 1.75rem;
+    height: 1.75rem;
+    padding: 0;
+    border-radius: 50%;
+    font-size: 0.85rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.complete-priority-task-btn:hover {
+    background-color: var(--primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}
+
 /* Notes styles */
 .add-note-button-container {
     margin: 0.5rem 0;
