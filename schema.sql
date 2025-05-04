@@ -10,6 +10,7 @@ CREATE TABLE tasks (
     completion_date DATE,
     next_action TEXT,
     goal_id INTEGER,
+    priority INTEGER,
     FOREIGN KEY (goal_id) REFERENCES goals(id)
 );
 
