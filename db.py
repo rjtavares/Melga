@@ -56,7 +56,7 @@ def get_db(flask=True):
 
 def get_task(task_id):
     db = get_db()
-    cursor = db.execute('SELECT id, description, due_date, completed, last_notification, next_action FROM tasks WHERE id = ?', (task_id,))
+    cursor = db.execute('SELECT id, description, due_date, completed, last_notification, next_action, priority FROM tasks WHERE id = ?', (task_id,))
     task = cursor.fetchone()
     return dict(task)
 

@@ -1,0 +1,21 @@
+{% if actions %}
+<ul class="action-list">
+    {% for action in actions %}
+        <li class="action-item">
+            <div class="action-description">{{ action.action_description }}</div>
+            <div class="action-date">{{ action.action_date_display }}</div>
+            <button class="delete-action-btn" 
+                    hx-delete="/task/action/{{ action.id }}/delete"
+                    hx-target="#actions-container"
+                    hx-swap="innerHTML"
+                    hx-confirm="Are you sure you want to delete this action?">
+                ✗
+            </button>
+        </li>
+    {% endfor %}
+</ul>
+{% else %}
+<div class="empty-state">
+    <p>No actions recorded for this task yet.</p>
+</div>
+{% endif %}

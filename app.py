@@ -485,6 +485,39 @@ def delete_note_htmx(note_id):
     # No content response for HTMX delete
     return "", 204
 
+@app.route('/task/<int:task_id>/toggle-priority', methods=['POST'])
+def toggle_task_priority(task_id):
+    """Toggle the priority of a task between 0 (not priority) and 1 (high priority)."""
+    task = get_task(task_id)
+    
+    if not task:
+        flash('Task not found.', 'error')
+        return "", 404
+    
+    # Get current priority value, default to 0 if None
+    current_priority = task.get('priority', 0) or 0
+    
+    # Toggle the priority value (0 -> 1, 1 -> 0)
+    new_priority = 0 if current_priority else 1
+    
+    # Update the task
+    update_task(task_id, {'priority': new_priority})
+    
+    priority_text = "high priority" if new_priority else "normal priority"
+    flash(f'Task marked as {priority_text}.', 'success')
+    
+    # Get updated actions for the task
+    actions = get_actions(task_id)
+    task = get_task(task_id)
+    
+    # Format dates and check overdue status
+    due_date = parse_date(task['due_date'])
+    task['due_date_display'] = format_date(due_date)
+    task['is_overdue'] = due_date < date.today() and not task['completed']
+    
+    # Return the updated actions container
+    return render_template('_task_actions.html', actions=actions, task=task)
+
 if __name__ == '__main__':
     debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true' # <-- Change this line
     app.run(debug=debug_mode, port=5001) # debug=True for development

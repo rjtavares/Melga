@@ -224,6 +224,28 @@
             opacity: 1;
         }
 
+        .priority-toggle-btn {
+            padding: 0.2rem 0.5rem;
+            font-size: 0.8rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            background-color: transparent;
+            border: 1px solid var(--secondary);
+            color: var(--secondary);
+            transition: all 0.2s ease;
+        }
+
+        .priority-toggle-btn.priority-high {
+            background-color: var(--yellow);
+            border-color: var(--yellow);
+            color: black;
+        }
+
+        .priority-toggle-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
         .empty-state {
             display: flex;
             flex-direction: column;
@@ -255,6 +277,13 @@
                         <strong>{{ task.description }}</strong> | 
                         <span class="due-date {% if task.is_overdue %}overdue{% endif %}">Due: {{ task.due_date_display }}{% if task.is_overdue %} (OVERDUE!){% endif %}</span> | 
                         <span class="status">Status: {{ "Completed" if task.completed else "Pending" }}</span>
+                        <button class="priority-toggle-btn {% if task.priority %}priority-high{% endif %}"
+                                hx-post="/task/{{ task.id }}/toggle-priority"
+                                hx-target="#actions-container"
+                                hx-swap="innerHTML"
+                                title="{{ 'Remove priority' if task.priority else 'Mark as high priority' }}">
+                            {% if task.priority %}⭐ Priority{% else %}☆ Set Priority{% endif %}
+                        </button>
                     </div>
                     <!-- Next Action Section -->
                     {% include '_next_action_view.html' %}
