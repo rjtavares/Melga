@@ -515,8 +515,14 @@ def toggle_task_priority(task_id):
     task['due_date_display'] = format_date(due_date)
     task['is_overdue'] = due_date < date.today() and not task['completed']
     
-    # Return the updated actions container
-    return render_template('_task_actions.html', actions=actions, task=task)
+    # Set the response headers to trigger flash display and refresh key elements
+    response = make_response(render_template('_task_actions.html', actions=actions, task=task))
+    response.headers['HX-Trigger'] = json.dumps({
+        'showFlash': True,
+        'refreshTaskDetails': {'task_id': task_id, 'priority': new_priority}
+    })
+    
+    return response
 
 if __name__ == '__main__':
     debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true' # <-- Change this line

@@ -272,6 +272,20 @@
             
             <header>
                 <h1>Task History</h1>
+                
+                <!-- Flash Messages -->
+                <div id="flash-messages-container">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                      {% if messages %}
+                        <ul class="flash-messages">
+                        {% for category, message in messages %}
+                          <li class="{{ category }}">{{ message }}</li>
+                        {% endfor %}
+                        </ul>
+                      {% endif %}
+                    {% endwith %}
+                </div>
+                
                 <div class="task-details {% if task.completed %}completed{% endif %}">
                     <div class="task-summary">
                         <strong>{{ task.description }}</strong> | 
@@ -346,6 +360,33 @@
                     form.reset(); // Reset the form fields
                 }
             }
+        });
+
+        // Listen for the refreshTaskDetails event from HX-Trigger
+        document.body.addEventListener('refreshTaskDetails', function(evt) {
+            const taskData = evt.detail;
+            
+            // Find the priority toggle button for this task
+            const priorityBtn = document.querySelector(`.priority-toggle-btn[hx-post="/task/${taskData.task_id}/toggle-priority"]`);
+            
+            if (priorityBtn) {
+                // Update button class based on new priority value
+                if (taskData.priority) {
+                    priorityBtn.classList.add('priority-high');
+                    priorityBtn.innerHTML = '⭐ Priority';
+                    priorityBtn.title = 'Remove priority';
+                } else {
+                    priorityBtn.classList.remove('priority-high');
+                    priorityBtn.innerHTML = '☆ Set Priority';
+                    priorityBtn.title = 'Mark as high priority';
+                }
+            }
+        });
+
+        // Listen for showFlash event to update flash messages
+        document.body.addEventListener('showFlash', function(evt) {
+            // Fetch and display flash messages
+            htmx.ajax('GET', '/flash-messages', {target: '#flash-messages-container'});
         });
     </script>
 </body>
