@@ -6,3 +6,6 @@ launch_melga.bat
 add_next_action_column.py
 schema_update.py
 *.zip
+credentials.json
+events_test.py
+token.pickle
