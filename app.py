@@ -239,7 +239,7 @@ def add_task_action(task_id):
 def snooze_modal(task_id, days):
     """Show a modal dialog to enter action before snoozing a task."""
     # Validate days input
-    if days not in [1, 3, 7]:
+    if days not in [1, 3, 7, 30]:
         flash('Invalid snooze duration.', 'error')
         return '', 400
     
@@ -248,6 +248,8 @@ def snooze_modal(task_id, days):
     days_text = f"{days} {day_str}"
     if days == 7:
         days_text += " (1 week)"
+    elif days == 30:
+        days_text += " (1 month)"
     
     return render_template('_snooze_modal.html', task_id=task_id, days=days, days_text=days_text)
 
@@ -267,7 +269,7 @@ def snooze_task(task_id, days):
 
     if task:
         # Validate days input
-        if days not in [1, 3, 7]:
+        if days not in [1, 3, 7, 30]:
             flash('Invalid snooze duration.', 'error')
             return make_task_list()
             
@@ -299,8 +301,9 @@ def snooze_task(task_id, days):
         
         # Create a more descriptive message with formatted date display
         week_str = " (1 week)" if days == 7 else ""
+        month_str = " (1 month)" if days == 30 else ""
         formatted_due_date = format_date(new_due_date, DATE_DISPLAY_FORMAT)
-        flash(f'Task snoozed for {days} {day_str}{week_str} until {formatted_due_date}.', 'success')
+        flash(f'Task snoozed for {days} {day_str}{week_str}{month_str} until {formatted_due_date}.', 'success')
     else:
         flash('Task not found.', 'error')
 
@@ -341,12 +344,6 @@ def reset_date(task_id):
     if task:
         # Check if task is overdue
         today = date.today()
-        
-        # Parse the task's due date using our utility
-        due_date = parse_date(task['due_date'])
-        if due_date and due_date < today:
-            flash('Cannot reset date for overdue tasks.', 'error')
-            return make_task_list()
         
         # Update the task with today's date
         today_db_format = get_db_date(today)
