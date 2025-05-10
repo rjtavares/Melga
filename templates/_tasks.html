@@ -3,7 +3,9 @@
     {% for task in tasks %}
     <li class="card {% if task.completed %}completed{% endif %} {% if current_goal and task.goal_id == current_goal.id %}linked-goal{% endif %}" id="task-{{ task.id }}">
         <div class="task-info">
-            <a href="/task/{{ task.id }}" class="task-link">{{ task.description }}</a>
+            <a href="/task/{{ task.id }}" class="task-link">
+                {{ task.description }}{% if task.priority %}⭐{% endif %}
+           </a>
         </div>
         <div class="due-date {% if task.is_overdue %}overdue{% endif %}">
             {{ task.due_date_display }}
