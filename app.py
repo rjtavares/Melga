@@ -264,8 +264,13 @@ def add_task_action(task_id):
 
     actions = get_actions(task_id)
     
-    # Return the updated actions list partial
-    response = make_response(render_template('_actions.html', actions=actions))
+    # Return the updated actions list and summary (swap-oob)
+    actions_html = render_template('_actions.html', actions=actions)
+    summary_html = render_template('_task_summary.html', task=get_task(task_id))
+    # Wrap summary_html in a div with id and hx-swap-oob
+    summary_oob = f'<div id="task-summary-container" hx-swap-oob="true">{summary_html}</div>'
+    response_html = actions_html + summary_oob
+    response = make_response(response_html)
     response.headers['HX-Trigger'] = json.dumps({'showFlash': True})
     return response
 

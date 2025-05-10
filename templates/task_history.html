@@ -287,17 +287,8 @@
                 </div>
                 
                 <div class="task-details {% if task.completed %}completed{% endif %}">
-                    <div class="task-summary">
-                        <strong>{{ task.description }}</strong> | 
-                        <span class="due-date {% if task.is_overdue %}overdue{% endif %}">Due: {{ task.due_date }}{% if task.is_overdue %} (OVERDUE!){% endif %}</span> | 
-                        <span class="status">Status: {{ "Completed" if task.completed else "Pending" }}</span>
-                        <button class="priority-toggle-btn {% if task.priority %}priority-high{% endif %}"
-                                hx-post="/task/{{ task.id }}/toggle-priority"
-                                hx-target="#actions-container"
-                                hx-swap="innerHTML"
-                                title="{{ 'Remove priority' if task.priority else 'Mark as high priority' }}">
-                            {% if task.priority %}⭐ Priority{% else %}☆ Set Priority{% endif %}
-                        </button>
+                    <div id="task-summary-container">
+                        {% include '_task_summary.html' %}
                     </div>
                     <!-- Next Action Section -->
                     {% include '_next_action_view.html' %}
@@ -335,7 +326,8 @@
                   hx-post="/task/{{ task.id }}/add-action"
                   hx-target="#actions-container"
                   hx-swap="innerHTML"
-                  hx-indicator="#add-action-spinner">
+                  hx-indicator="#add-action-spinner"
+                  hx-on="htmx:afterSwap: document.getElementById('task-summary-container').outerHTML = htmx.find('#task-summary-container').outerHTML">
                 <div class="form-grid">
                     <div>
                         <label for="action_description">New Action:</label>
