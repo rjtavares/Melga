@@ -232,35 +232,8 @@ def add_task_action(task_id):
     
     # Handle snoozing if action_snooze is provided
     if action_snooze:
-        try:
-            days = int(action_snooze)
-            
-            # Validate days input
-            if days in [1, 3, 7, 30]:
-                # Get current due date or use today if no due date exists
-                current_due_date = date.today()
-                if task['due_date']:
-                    # Use our parse_date utility to safely parse the date
-                    parsed_date = parse_date(task['due_date'])
-                    if parsed_date:
-                        current_due_date = parsed_date
-                        
-                # Add days to the current due date
-                new_due_date = current_due_date + timedelta(days=days)
-                
-                # Update the task with the new due date using our standardized format
-                update_task(task_id, {'due_date': get_db_date(new_due_date)})
-                
-                # Determine day string for flash message
-                day_str = "day" if days == 1 else "days"
-                week_str = " (1 week)" if days == 7 else ""
-                month_str = " (1 month)" if days == 30 else ""
-                formatted_due_date = format_date(new_due_date, DATE_DISPLAY_FORMAT)
-                
-                flash(f'Task snoozed for {days} {day_str}{week_str}{month_str} until {formatted_due_date}.', 'success')
-        except ValueError:
-            # If action_snooze is not a valid integer, just ignore it
-            pass
+        message, status = snooze_task(task_id, int(action_snooze))
+        flash(message, status)
 
     actions = get_actions(task_id)
     
@@ -308,47 +281,49 @@ def snooze_task(task_id, days):
     task = get_task(task_id)
 
     if task:
-        # Validate days input
-        if days not in [1, 3, 7, 30]:
-            flash('Invalid snooze duration.', 'error')
-            return make_task_list()
-            
-        # Get current due date or use today if no due date exists
-        current_due_date = date.today()
-        if task['due_date']:
-            # Use our parse_date utility to safely parse the date
-            parsed_date = parse_date(task['due_date'])
-            if parsed_date:
-                current_due_date = parsed_date
-                
-        # Add days to the current due date
-        new_due_date = current_due_date + timedelta(days=days)
-        
-        # Update the task with the new due date using our standardized format
-        update_task(task_id, {'due_date': get_db_date(new_due_date)})
+        message, status = snooze_task(task_id, days)
+        flash(message, status)
 
-        # Update next action if provided
-        if next_action_text:
-             update_task(task_id, {'next_action': next_action_text})
+        if status == 'success':
+            # Update next action if provided
+            if next_action_text:
+                update_task(task_id, {'next_action': next_action_text})
 
-        # Add an action entry for the snooze
-        today = get_db_date()
+            # Add an action entry for the snooze
+            today = get_db_date()        
+            insert_action(task_id, action_description, today)
+            flash('Action added successfully.', 'success')
         
-        # Determine day string for flash message
-        day_str = "day" if days == 1 else "days"
-        
-        insert_action(task_id, action_description, today)
-        
-        # Create a more descriptive message with formatted date display
-        week_str = " (1 week)" if days == 7 else ""
-        month_str = " (1 month)" if days == 30 else ""
-        formatted_due_date = format_date(new_due_date, DATE_DISPLAY_FORMAT)
-        flash(f'Task snoozed for {days} {day_str}{week_str}{month_str} until {formatted_due_date}.', 'success')
     else:
         flash('Task not found.', 'error')
 
     # Return the updated task list partial for HTMX
     return make_task_list()
+
+def snooze_task(task_id, days):
+    task = get_task(task_id)
+    if days not in [1, 3, 7, 30]:
+        return False, 'Invalid snooze duration.'
+    current_due_date = date.today()
+    if task['due_date']:
+        # Use our parse_date utility to safely parse the date
+        parsed_date = parse_date(task['due_date'])
+        if parsed_date:
+            current_due_date = parsed_date
+            
+    # Add days to the current due date
+    new_due_date = current_due_date + timedelta(days=days)
+
+    # Determine day string for flash message
+    day_str = "day" if days == 1 else "days"
+    week_str = " (1 week)" if days == 7 else ""
+    month_str = " (1 month)" if days == 30 else ""
+    formatted_due_date = format_date(new_due_date, DATE_DISPLAY_FORMAT)
+
+    # Update the task with the new due date using our standardized format
+    update_task(task_id, {'due_date': get_db_date(new_due_date)})
+    return True, f'Task snoozed for {days} {day_str}{week_str}{month_str} until {formatted_due_date}.'
+
 
 
 @app.route('/flash-messages')
