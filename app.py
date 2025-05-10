@@ -322,9 +322,7 @@ def snooze_task(task_id, days):
 
     # Update the task with the new due date using our standardized format
     update_task(task_id, {'due_date': get_db_date(new_due_date)})
-    return True, f'Task snoozed for {days} {day_str}{week_str}{month_str} until {formatted_due_date}.'
-
-
+    return f'Task snoozed for {days} {day_str}{week_str}{month_str} until {formatted_due_date}.', 'success'
 
 @app.route('/flash-messages')
 def get_flash_messages():
@@ -544,12 +542,7 @@ def toggle_task_priority(task_id):
     # Get updated actions for the task
     actions = get_actions(task_id)
     task = get_task(task_id)
-    
-    # Format dates and check overdue status
-    due_date = parse_date(task['due_date'])
-    task['due_date_display'] = format_date(due_date)
-    task['is_overdue'] = due_date < date.today() and not task['completed']
-    
+        
     # Set the response headers to trigger flash display and refresh key elements
     response = make_response(render_template('_task_actions.html', actions=actions, task=task))
     response.headers['HX-Trigger'] = json.dumps({

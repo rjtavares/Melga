@@ -57,8 +57,14 @@ def get_db(flask=True):
 def get_task(task_id):
     db = get_db()
     cursor = db.execute('SELECT id, description, due_date, completed, last_notification, next_action, priority FROM tasks WHERE id = ?', (task_id,))
-    task = cursor.fetchone()
-    return dict(task)
+    task = dict(cursor.fetchone())
+    
+    # Format dates and check overdue status
+    due_date = parse_date(task['due_date'])
+    task['due_date_display'] = format_date(due_date)
+    task['is_overdue'] = due_date < date.today() and not task['completed']
+
+    return task
 
 def get_overdue_tasks():
     db = get_db(flask=False)

@@ -1,6 +1,6 @@
 <div id="task-summary-section" class="task-summary">
     <strong>{{ task.description }}</strong> | 
-    <span class="due-date {% if task.is_overdue %}overdue{% endif %}">Due: {{ task.due_date }}{% if task.is_overdue %} (OVERDUE!){% endif %}</span> | 
+    <span class="due-date {% if task.is_overdue %}overdue{% endif %}">Due: {{ task.due_date_display}}{% if task.is_overdue %} (OVERDUE!){% endif %}</span> | 
     <span class="status">Status: {{ "Completed" if task.completed else "Pending" }}</span>
     <button class="priority-toggle-btn {% if task.priority %}priority-high{% endif %}"
             hx-post="/task/{{ task.id }}/toggle-priority"
