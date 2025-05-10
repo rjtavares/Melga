@@ -212,8 +212,9 @@ def get_view_next_action(task_id):
 
 @app.route('/task/<int:task_id>/add-action', methods=['POST'])
 def add_task_action(task_id):
-    """Add a new action to a task."""
+    """Add a new action to a task and optionally snooze the task."""
     action_description = request.form.get('action_description')
+    action_snooze = request.form.get('action_snooze')
     
     if not action_description:
         flash('Action description is required!', 'error')
@@ -228,11 +229,45 @@ def add_task_action(task_id):
     # Add the action
     today = get_db_date()
     insert_action(task_id, action_description, today)
+    
+    # Handle snoozing if action_snooze is provided
+    if action_snooze:
+        try:
+            days = int(action_snooze)
+            
+            # Validate days input
+            if days in [1, 3, 7, 30]:
+                # Get current due date or use today if no due date exists
+                current_due_date = date.today()
+                if task['due_date']:
+                    # Use our parse_date utility to safely parse the date
+                    parsed_date = parse_date(task['due_date'])
+                    if parsed_date:
+                        current_due_date = parsed_date
+                        
+                # Add days to the current due date
+                new_due_date = current_due_date + timedelta(days=days)
+                
+                # Update the task with the new due date using our standardized format
+                update_task(task_id, {'due_date': get_db_date(new_due_date)})
+                
+                # Determine day string for flash message
+                day_str = "day" if days == 1 else "days"
+                week_str = " (1 week)" if days == 7 else ""
+                month_str = " (1 month)" if days == 30 else ""
+                formatted_due_date = format_date(new_due_date, DATE_DISPLAY_FORMAT)
+                
+                flash(f'Task snoozed for {days} {day_str}{week_str}{month_str} until {formatted_due_date}.', 'success')
+        except ValueError:
+            # If action_snooze is not a valid integer, just ignore it
+            pass
 
     actions = get_actions(task_id)
     
     # Return the updated actions list partial
-    return render_template('_actions.html', actions=actions)
+    response = make_response(render_template('_actions.html', actions=actions))
+    response.headers['HX-Trigger'] = json.dumps({'showFlash': True})
+    return response
 
 
 @app.route('/snooze-modal/<int:task_id>/<int:days>', methods=['GET'])
