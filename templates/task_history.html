@@ -157,7 +157,7 @@
 
         .form-grid {
             display: grid;
-            grid-template-columns: 1fr auto;
+            grid-template-columns: 2fr 1fr auto;
             gap: 0.5rem;
             align-items: end;
         }
@@ -340,6 +340,15 @@
                     <div>
                         <label for="action_description">New Action:</label>
                         <input type="text" id="action_description" name="action_description" required>
+                    </div>
+                    <div>
+                        <label for="action_duration">Duration:</label>
+                        <select id="action_duration" name="action_duration">
+                            <option value="1">1 day</option>
+                            <option value="3">3 days</option>
+                            <option value="7">1 week</option>
+                            <option value="30">1 month</option>
+                        </select>
                     </div>
                     <div>
                         <button type="submit" class="primary">Add Action</button>
