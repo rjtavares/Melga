@@ -3,24 +3,23 @@ from events import create_event
 from db import get_overdue_tasks
 import datetime
 
-def tomorrow_event_time(hour: float):
+def get_event_time(hour: float):
     hour_int = int(hour)
     minute = int((hour - hour_int) * 60)
-    now = datetime.datetime.now()
-    tomorrow = now + datetime.timedelta(days=1)
+    today = datetime.datetime.now()
     return datetime.datetime(
-        tomorrow.year, 
-        tomorrow.month, 
-        tomorrow.day, 
-        hour, minute, 0
+        today.year, 
+        today.month, 
+        today.day, 
+        hour_int, minute, 0
     )   
 
 def main():
     """Run the notifications and create events for overdue tasks."""
     overdue_tasks = get_overdue_tasks()
 
-    event_time_1 = tomorrow_event_time(13)
-    event_time_2 = tomorrow_event_time(18)
+    event_time_1 = get_event_time(13)
+    event_time_2 = get_event_time(18)
 
     notifications_sent = 0
     events_created = 0
