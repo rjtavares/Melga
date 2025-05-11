@@ -1,10 +1,19 @@
 import requests
 import os
+import logging
 from datetime import datetime, date
 from db import get_overdue_tasks, set_last_notification
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# Configure logging
+logging.basicConfig(
+    filename='notifications.log',
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 
 def send_notification(task):
     NTFY_TOPIC = os.getenv('NTFY_TOPIC')
@@ -47,6 +56,9 @@ def send_notification(task):
 
     if response.status_code == 200:
         set_last_notification(task)
+        logging.info(f"Successfully sent notification for task {task['id']} - {task['description']}")
+    else:
+        logging.error(f"Failed to send notification for task {task['id']} - {task['description']}. Status code: {response.status_code}")
     
     return response.status_code
 
@@ -59,6 +71,7 @@ def notify_overdue():
             notifications_sent += 1
         else:
             print(f"Failed to send notification for task {task['id']}")
+    logging.info(f"Successfully sent {notifications_sent} notification(s) for overdue tasks out of {len(overdue_tasks)} tasks.")
     return len(overdue_tasks), notifications_sent
 
 def main():

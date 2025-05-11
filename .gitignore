@@ -9,3 +9,4 @@ schema_update.py
 credentials.json
 events_test.py
 token.pickle
+notifications.log
