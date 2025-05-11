@@ -61,28 +61,3 @@ def send_notification(task):
         logging.error(f"Failed to send notification for task {task['id']} - {task['description']}. Status code: {response.status_code}")
     
     return response.status_code
-
-def notify_overdue():
-    overdue_tasks = get_overdue_tasks()
-    notifications_sent = 0
-    for task in overdue_tasks:
-        status = send_notification(task)
-        if status == 200:
-            notifications_sent += 1
-        else:
-            print(f"Failed to send notification for task {task['id']}")
-    logging.info(f"Successfully sent {notifications_sent} notification(s) for overdue tasks out of {len(overdue_tasks)} tasks.")
-    return len(overdue_tasks), notifications_sent
-
-def main():
-    """Run the notifications for overdue tasks."""
-    try:
-        count, sent = notify_overdue()
-        print(f"Successfully sent {sent} notification(s) for overdue tasks out of {count} tasks.")
-        return 0
-    except Exception as e:
-        print(f"Error sending notifications: {e}")
-        return 1
-
-if __name__ == "__main__":
-    exit(main())
