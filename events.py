@@ -10,28 +10,59 @@ from datetime import timedelta
 SCOPES = ['https://www.googleapis.com/auth/calendar.events.owned']
 
 def authenticate_calendar(credentials_file='credentials.json'):
-    """Authenticate to Google Calendar API using JSON credentials file."""
+    """
+    Authenticate to Google Calendar API using JSON credentials file.
+    Automatically handles token expiration and renewal.
+    """
     creds = None
+    token_file = 'token.pickle'
     
     # Check if token.pickle exists (stores access tokens)
-    if os.path.exists('token.pickle'):
-        with open('token.pickle', 'rb') as token:
-            creds = pickle.load(token)
+    if os.path.exists(token_file):
+        try:
+            with open(token_file, 'rb') as token:
+                creds = pickle.load(token)
+                
+            # If we have credentials but they're expired and have a refresh token
+            if creds and creds.expired and creds.refresh_token:
+                try:
+                    creds.refresh(Request())
+                    # Save the refreshed credentials
+                    with open(token_file, 'wb') as token:
+                        pickle.dump(creds, token)
+                except Exception as e:
+                    print("Token refresh failed. Starting new authentication flow...")
+                    print(f"Error: {str(e)}")
+                    creds = None
+                    
+        except (pickle.PickleError, EOFError, Exception) as e:
+            print("Error loading token file. Starting new authentication flow...")
+            print(f"Error: {str(e)}")
+            creds = None
     
-    # If credentials don't exist or are invalid, get new ones
+    # If we don't have valid credentials, start the OAuth flow
     if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                credentials_file, SCOPES)
+        try:
+            flow = InstalledAppFlow.from_client_secrets_file(credentials_file, SCOPES)
             creds = flow.run_local_server(port=0)
-        
-        # Save the credentials for the next run
-        with open('token.pickle', 'wb') as token:
-            pickle.dump(creds, token)
+            
+            # Save the new credentials
+            with open(token_file, 'wb') as token:
+                pickle.dump(creds, token)
+                
+        except Exception as e:
+            print(f"Failed to authenticate with Google Calendar: {str(e)}")
+            if os.path.exists(token_file):
+                os.remove(token_file)
+            return None
     
-    return build('calendar', 'v3', credentials=creds)
+    try:
+        return build('calendar', 'v3', credentials=creds)
+    except Exception as e:
+        print(f"Failed to create calendar service: {str(e)}")
+        if os.path.exists(token_file):
+            os.remove(token_file)
+        return None
 
 def create_event(task: dict, start_time: datetime.datetime, duration: int = 30) -> dict:
     """
