@@ -5,6 +5,15 @@ from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from datetime import timedelta
+import logging
+
+# Configure logging
+logging.basicConfig(
+    filename='notifications.log',
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 
 # Define the scopes
 SCOPES = ['https://www.googleapis.com/auth/calendar.events.owned']
@@ -94,5 +103,5 @@ def create_event(task: dict, start_time: datetime.datetime, duration: int = 30) 
     }
 
     event = service.events().insert(calendarId='primary', body=event).execute()
-    print(f'Event created: {event.get("htmlLink")}')
+    logging.info(f"Successfully created event for task {task['id']} - {task['description']}")
     return event

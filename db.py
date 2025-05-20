@@ -68,8 +68,8 @@ def get_task(task_id):
 
 def get_overdue_tasks():
     db = get_db(flask=False)
-    cursor = db.execute('SELECT id, description, due_date, completed, last_notification, next_action FROM tasks WHERE completed = 0 AND due_date < CURRENT_DATE')
-    tasks = cursor.fetchall()
+    cursor = db.execute('SELECT * FROM tasks WHERE completed = 0 AND due_date < CURRENT_DATE')
+    tasks = [dict(x) for x in cursor.fetchall()]
     return tasks
 
 def set_last_notification(task, notification_date=None):

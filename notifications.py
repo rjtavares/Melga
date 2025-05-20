@@ -2,7 +2,7 @@ import requests
 import os
 import logging
 from datetime import datetime, date
-from db import get_overdue_tasks, set_last_notification
+from db import set_last_notification
 from dotenv import load_dotenv
 
 load_dotenv()

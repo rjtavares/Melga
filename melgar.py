@@ -17,6 +17,7 @@ def get_event_time(hour: float):
 def main():
     """Run the notifications and create events for overdue tasks."""
     overdue_tasks = get_overdue_tasks()
+    has_priority_tasks = any(task['priority'] for task in overdue_tasks)
 
     event_time_1 = get_event_time(13)
     event_time_2 = get_event_time(18)
@@ -27,17 +28,19 @@ def main():
         status = send_notification(task)
         if status == 200:
             notifications_sent += 1
+    
+        if (not has_priority_tasks) or task['priority']:
+            event_1 = create_event(task, event_time_1)
+            event_2 = create_event(task, event_time_2)
 
-        event_1 = create_event(task, event_time_1)
-        event_2 = create_event(task, event_time_2)
-
-        if event_1 and event_2:
-            events_created += 1
-        else:
-            if not event_1:
-                print(f"Failed to create event for task {task['id']} at {event_time_1}")
-            if not event_2:
-                print(f"Failed to create event for task {task['id']} at {event_time_2}")
+            if event_1 and event_2:
+                events_created += 1
+            else:
+                if not event_1:
+                    print(f"Failed to create event for task {task['id']} at {event_time_1}")
+                if not event_2:
+                    print(f"Failed to create event for task {task['id']} at {event_time_2}")
+        
 
     print(f"Successfully sent {notifications_sent} notification(s) for overdue tasks out of {len(overdue_tasks)} tasks.")
     print(f"Successfully created {events_created} event(s) for overdue tasks out of {len(overdue_tasks)} tasks.")
