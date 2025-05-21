@@ -357,3 +357,64 @@ def insert_task(description, due_date, goal_id=None):
     
     db.commit()
     return True
+
+# --- Random Things To Do Functions ---
+
+def get_random_thing(thing_id):
+    db = get_db()
+    cursor = db.execute('SELECT id, description, completed, completion_date, link FROM random_things_to_do WHERE id = ?', (thing_id,))
+    thing = cursor.fetchone()
+    if thing:
+        return dict(thing)
+    return None
+
+def get_random_things():
+    db = get_db()
+    cursor = db.execute('SELECT id, description, completed, completion_date, link FROM random_things_to_do ORDER BY id DESC')
+    things_raw = cursor.fetchall()
+    
+    things = []
+    for thing in things_raw:
+        thing_dict = dict(thing)
+        # Format the completion date if it exists
+        if thing_dict['completion_date']:
+            thing_dict['completion_date_display'] = get_display_date(thing_dict['completion_date'], short=True)
+        things.append(thing_dict)
+    
+    return things
+
+def insert_random_thing(description, link=None):
+    db = get_db()
+    db.execute(
+        'INSERT INTO random_things_to_do (description, link, completed) VALUES (?, ?, 0)',
+        (description, link)
+    )
+    db.commit()
+    return True
+
+def toggle_random_thing(thing_id):
+    db = get_db()
+    thing = get_random_thing(thing_id)
+    if thing:
+        new_status = not thing['completed']
+        today = date.today()
+        
+        if new_status:  # If thing is being marked as completed
+            db.execute(
+                'UPDATE random_things_to_do SET completed = ?, completion_date = ? WHERE id = ?',
+                (new_status, get_db_date(today), thing_id)
+            )
+        else:  # If thing is being marked as pending
+            db.execute(
+                'UPDATE random_things_to_do SET completed = ?, completion_date = NULL WHERE id = ?',
+                (new_status, thing_id)
+            )
+        db.commit()
+        return True
+    return False
+
+def delete_random_thing(thing_id):
+    db = get_db()
+    db.execute('DELETE FROM random_things_to_do WHERE id = ?', (thing_id,))
+    db.commit()
+    return True

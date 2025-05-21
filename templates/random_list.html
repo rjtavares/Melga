@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random Things To Do - Melga</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon-16x16.png') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}">
+    <style>
+        .random-things-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+        
+        .random-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .back-button {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            color: var(--primary);
+            text-decoration: none;
+            border-radius: 0.25rem;
+            background-color: transparent;
+            border: 1px solid var(--primary);
+            transition: all 0.2s ease;
+        }
+        
+        .back-button:hover {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .add-random-button {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            color: #333;
+            text-decoration: none;
+            border-radius: 0.25rem;
+            background-color: var(--primary-hover);
+            border: none;
+            transition: all 0.2s ease;
+        }
+        
+        .add-random-button:hover {
+            background-color: var(--primary);
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        
+        .random-things-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .card {
+            background-color: var(--card-background-color);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            margin-bottom: 1rem;
+            border-left: 3px solid var(--primary);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        
+        .card.completed {
+            opacity: 0.7;
+            border-left-color: var(--success, #28a745);
+        }
+        
+        .card-content {
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .card-main {
+            flex: 1;
+        }
+        
+        .thing-description {
+            font-size: 1.1rem;
+            margin: 0 0 0.5rem 0;
+        }
+        
+        .thing-link {
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            word-break: break-all;
+        }
+        
+        .completion-date {
+            font-size: 0.8rem;
+            color: var(--muted-color);
+        }
+        
+        .card-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-left: 1rem;
+        }
+        
+        .action-btn {
+            padding: 0.3rem 0.6rem;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .delete-btn {
+            background-color: rgba(220, 53, 69, 0.1);
+            color: var(--danger, #dc3545);
+        }
+        
+        .delete-btn:hover {
+            background-color: var(--danger, #dc3545);
+            color: white;
+        }
+        
+        .no-items-message {
+            text-align: center;
+            padding: 2rem;
+            background-color: var(--card-background-color);
+            border-radius: 0.5rem;
+            border: 1px dashed rgba(0,0,0,0.1);
+            color: var(--muted-color);
+        }
+    </style>
+</head>
+<body>
+    <main class="random-things-container">
+        <div class="random-header">
+            <h1>Random Things To Do</h1>
+            <div class="random-actions">
+                <a href="/" class="back-button">Back to Tasks</a>
+                <a href="/random/new" class="add-random-button">Add Random Thing</a>
+            </div>
+        </div>
+
+        <!-- Flash Messages -->
+        <div id="flash-messages-container">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                <ul class="flash-messages">
+                {% for category, message in messages %}
+                  <li class="{{ category }}">{{ message }}</li>
+                {% endfor %}
+                </ul>
+              {% endif %}
+            {% endwith %}
+        </div>
+
+        <!-- Add Random Thing Button -->
+        <div class="action-bar">
+            <a href="{{ url_for('new_random_thing') }}" class="btn">Add Random Thing</a>
+        </div>
+
+        <!-- Random Things List -->
+        <div class="random-things-list">
+            {% if random_things %}
+                <ul class="list">
+                    {% for thing in random_things %}
+                        <li class="card {% if thing.completed %}completed{% endif %}">
+                            <div class="card-content">
+                                <div class="card-main">
+                                    <h3 class="thing-description">{{ thing.description }}</h3>
+                                    
+                                    {% if thing.link %}
+                                    <div class="thing-link">
+                                        <a href="{{ thing.link }}" target="_blank" rel="noopener noreferrer">
+                                            {{ thing.link }}
+                                        </a>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if thing.completed %}
+                                    <div class="completion-date">
+                                        Completed on: {{ thing.completion_date_display }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="card-actions">
+                                    <form 
+                                        hx-post="{{ url_for('toggle_random_thing_route', thing_id=thing.id) }}"
+                                        hx-target="closest .card"
+                                        hx-swap="outerHTML">
+                                        
+                                        <button type="submit" class="btn action-btn">
+                                            {% if thing.completed %}
+                                                <span class="toggle-icon">↩</span> Undo
+                                            {% else %}
+                                                <span class="toggle-icon">✓</span> Complete
+                                            {% endif %}
+                                        </button>
+                                    </form>
+                                    
+                                    <a href="{{ url_for('delete_random_thing_route', thing_id=thing.id) }}" 
+                                       class="btn action-btn delete-btn"
+                                       onclick="return confirm('Are you sure you want to delete this?');">
+                                        <span class="delete-icon">×</span> Delete
+                                    </a>
+                                </div>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <div class="no-items-message">
+                    <p>No random things to do yet. Add something fun!</p>
+                </div>
+            {% endif %}
+        </div>
+    </main>
+
+    <!-- JavaScript for HTMX Event Handlers -->
+    <script>
+        // Handle flash message display trigger
+        document.body.addEventListener('showFlash', function(evt) {
+            // Fetch and display flash messages
+            htmx.ajax('GET', '/flash-messages', {target: '#flash-messages-container'});
+        });
+        
+        // Handle refresh trigger for the random things list
+        document.body.addEventListener('refreshRandomList', function(evt) {
+            // Fetch and update the entire random things list
+            htmx.ajax('GET', '/random/view', {target: 'body'});
+        });
+    </script>
+</body>
+</html>

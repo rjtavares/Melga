@@ -552,6 +552,81 @@ def toggle_task_priority(task_id):
     
     return response
 
+# ----- Random Things To Do Routes -----
+
+@app.route('/random/new')
+def new_random_thing():
+    """Route to display the form for adding a new random thing to do."""
+    return render_template('random_new.html')
+
+@app.route('/random/save', methods=['POST'])
+def save_random_thing():
+    """Route to save a new random thing to do."""
+    description = request.form.get('description')
+    link = request.form.get('link')
+    
+    if not description:
+        flash('Description is required!', 'error')
+        return redirect(url_for('new_random_thing'))
+    
+    insert_random_thing(description, link)
+    
+    flash('Random thing to do saved successfully!', 'success')
+    return redirect(url_for('view_random_things'))
+
+@app.route('/random/view')
+def view_random_things():
+    """Route to view all random things to do."""
+    random_things = get_random_things()
+    return render_template('random_list.html', random_things=random_things)
+
+@app.route('/random/toggle/<int:thing_id>', methods=['POST'])
+def toggle_random_thing_route(thing_id):
+    """Route to toggle completion status of a random thing to do."""
+    success = toggle_random_thing(thing_id)
+    
+    if success:
+        thing = get_random_thing(thing_id)
+        status_text = "completed" if thing['completed'] else "marked as pending"
+        flash(f'Random thing {status_text}.', 'success')
+    else:
+        flash('Random thing not found.', 'error')
+    
+    # If it's an HTMX request, return just the updated item
+    if request.headers.get('HX-Request'):
+        thing = get_random_thing(thing_id)
+        response = make_response(render_template('_random_thing_item.html', thing=thing))
+        response.headers['HX-Trigger'] = 'showFlash'
+        return response
+    
+    # Otherwise redirect back to the list
+    return redirect(url_for('view_random_things'))
+
+@app.route('/random/delete/<int:thing_id>')
+def delete_random_thing_route(thing_id):
+    """Route to delete a random thing to do."""
+    # Check if the thing exists
+    thing = get_random_thing(thing_id)
+    
+    if not thing:
+        flash('Random thing not found.', 'error')
+    else:
+        delete_random_thing(thing_id)
+        flash('Random thing deleted successfully!', 'success')
+    
+    # If it's an HTMX request, return an empty response with trigger
+    if request.headers.get('HX-Request'):
+        response = make_response("")
+        response.headers['HX-Trigger'] = json.dumps({
+            'showFlash': True,
+            'refreshRandomList': True
+        })
+        return response
+    
+    # Otherwise redirect back to the list
+    return redirect(url_for('view_random_things'))
+
+
 if __name__ == '__main__':
     debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true' # <-- Change this line
     app.run(debug=debug_mode, port=5001) # debug=True for development

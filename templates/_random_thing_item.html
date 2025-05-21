@@ -1,0 +1,43 @@
+<li class="card {% if thing.completed %}completed{% endif %}">
+    <div class="card-content">
+        <div class="card-main">
+            <h3 class="thing-description">{{ thing.description }}</h3>
+            
+            {% if thing.link %}
+            <div class="thing-link">
+                <a href="{{ thing.link }}" target="_blank" rel="noopener noreferrer">
+                    {{ thing.link }}
+                </a>
+            </div>
+            {% endif %}
+            
+            {% if thing.completed %}
+            <div class="completion-date">
+                Completed on: {{ thing.completion_date_display }}
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="card-actions">
+            <form 
+                hx-post="{{ url_for('toggle_random_thing_route', thing_id=thing.id) }}"
+                hx-target="closest .card"
+                hx-swap="outerHTML">
+                
+                <button type="submit" class="btn action-btn">
+                    {% if thing.completed %}
+                        <span class="toggle-icon">↩</span> Undo
+                    {% else %}
+                        <span class="toggle-icon">✓</span> Complete
+                    {% endif %}
+                </button>
+            </form>
+            
+            <a href="{{ url_for('delete_random_thing_route', thing_id=thing.id) }}" 
+               class="btn action-btn delete-btn"
+               onclick="return confirm('Are you sure you want to delete this?');">
+                <span class="delete-icon">×</span> Delete
+            </a>
+        </div>
+    </div>
+</li>
