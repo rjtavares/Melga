@@ -38,3 +38,11 @@ CREATE TABLE notes (
     type TEXT,
     created_date DATE NOT NULL
 )
+
+CREATE TABLE random_things_to_do (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    description TEXT NOT NULL,
+    completed BOOLEAN NOT NULL DEFAULT 0, -- 0 for false, 1 for true
+    completion_date DATE,
+    link TEXT
+)
