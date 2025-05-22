@@ -91,6 +91,53 @@
                  {% include '_tasks.html' %} {# Include initial tasks rendered server-side #}
             </div>
 
+            <!-- Random Thing Suggestion -->
+            {% if random_thing %}
+            <div id="random-thing-container" class="random-thing-container">
+                <h4 class="random-thing-header">Random Suggestion</h4>
+                <ul>
+                    <li class="card {% if random_thing.completed %}completed{% endif %}" id="random-thing-{{ random_thing.id }}">
+                        <div class="task-info">
+                            <span class="random-thing-description">{{ random_thing.description }}</span>
+                            {% if random_thing.link %}
+                            <div class="random-thing-link">
+                                <a href="{{ random_thing.link }}" target="_blank" rel="noopener noreferrer">{{ random_thing.link }}</a>
+                            </div>
+                            {% endif %}
+                            {% if random_thing.completed %}
+                            <div class="completion-date">
+                                Completed on: {{ random_thing.completion_date_display }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="task-actions">
+                            <button class="btn toggle-btn"
+                                    hx-post="/random/toggle/{{ random_thing.id }}"
+                                    hx-target="#random-thing-{{ random_thing.id }}"
+                                    hx-swap="outerHTML"
+                                    hx-vals='{"source_page": "index"}'>
+                                {{ 'Undo' if random_thing.completed else '✓' }}
+                            </button>
+                            <button class="btn refresh-btn"
+                                    hx-get="/"
+                                    hx-target="body"
+                                    hx-swap="innerHTML"
+                                    title="Get a new suggestion">
+                                ↻
+                            </button>
+                            <button class="btn delete-btn"
+                                    hx-delete="/random/delete/{{ random_thing.id }}"
+                                    hx-target="#random-thing-container"
+                                    hx-swap="innerHTML"
+                                    hx-confirm="Are you sure you want to delete this suggestion?">
+                                ✗
+                            </button>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+            {% endif %}
+
             <!-- Add Note and View Notes Buttons -->
             <div class="add-note-button-container">
                 <a href="/notes/new" class="btn btn-note" role="button">Add Note</a>

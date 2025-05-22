@@ -727,3 +727,32 @@ h1 {
     transform: translateY(-1px);
     box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
+
+/* Random thing in index styles */
+.random-thing-container {
+    margin: 1.5rem 0;
+    border-top: 1px solid var(--muted-border-color);
+    padding-top: 1rem;
+}
+
+.random-thing-header {
+    text-align: center;
+    margin-bottom: 0.5rem;
+    color: var(--secondary);
+    font-weight: 600;
+}
+
+.random-thing-description {
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.random-thing-link {
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+}
+
+.refresh-btn {
+    background-color: var(--primary-focus);
+    color: white;
+}

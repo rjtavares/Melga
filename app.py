@@ -43,9 +43,15 @@ def index():
     
     # Get the highest priority task
     priority_task = get_priority_task()
+    
+    # Get a random thing to suggest
+    random_thing = get_random_thing()
+    # Format completion_date if it exists
+    if random_thing and random_thing.get('completion_date'):
+        random_thing['completion_date_display'] = get_display_date(random_thing['completion_date'], short=True)
 
     return render_template('index.html', tasks=tasks, today=today, activity_data=last_21_days, 
-                           current_goal=current_goal, priority_task=priority_task)
+                           current_goal=current_goal, priority_task=priority_task, random_thing=random_thing)
 
 
 # --- HTMX Routes ---
@@ -584,9 +590,13 @@ def view_random_things():
 def toggle_random_thing_route(thing_id):
     """Route to toggle completion status of a random thing to do."""
     success = toggle_random_thing(thing_id)
+    source_page = request.form.get('source_page', 'list') # Defaults to 'list' if not specified
     
     if success:
         thing = get_random_thing(thing_id)
+        # Format completion date if it exists
+        if thing and thing.get('completion_date'):
+            thing['completion_date_display'] = get_display_date(thing['completion_date'], short=True)
         status_text = "completed" if thing['completed'] else "marked as pending"
         flash(f'Random thing {status_text}.', 'success')
     else:
@@ -595,7 +605,14 @@ def toggle_random_thing_route(thing_id):
     # If it's an HTMX request, return just the updated item
     if request.headers.get('HX-Request'):
         thing = get_random_thing(thing_id)
-        response = make_response(render_template('_random_thing_item.html', thing=thing))
+        
+        # Choose the appropriate template based on the source page
+        if source_page == 'index':
+            template = '_random_thing_index.html'
+        else:
+            template = '_random_thing_item.html'
+            
+        response = make_response(render_template(template, random_thing=thing))
         response.headers['HX-Trigger'] = 'showFlash'
         return response
     
