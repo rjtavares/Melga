@@ -709,3 +709,21 @@ h1 {
     transform: translateY(-1px);
     box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
+
+.btn-random {
+    background-color: var(--secondary);
+    color: white;
+    border: none;
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    text-decoration: none;
+    margin-bottom: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+.btn-random:hover {
+    background-color: var(--secondary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
