@@ -1,6 +1,7 @@
 from flask import g
 import sqlite3
 from datetime import date, timedelta, datetime
+import random
 
 DATABASE = 'tasks.db'
 
@@ -360,10 +361,26 @@ def insert_task(description, due_date, goal_id=None):
 
 # --- Random Things To Do Functions ---
 
-def get_random_thing(thing_id):
+def get_random_thing(thing_id=None):
+    '''
+    Get a random thing to do from the database.
+    If thing_id is provided, get that specific thing.
+    Otherwise, get a random random thing to do.
+    '''
     db = get_db()
-    cursor = db.execute('SELECT id, description, completed, completion_date, link FROM random_things_to_do WHERE id = ?', (thing_id,))
-    thing = cursor.fetchone()
+    if thing_id is not None:
+        cursor = db.execute('SELECT id, description, completed, completion_date, link FROM random_things_to_do WHERE id = ?', (thing_id,))
+        thing = cursor.fetchone()
+    else:
+        # Fetch a random thing if no id is provided
+        cursor = db.execute('SELECT id FROM random_things_to_do')
+        all_ids = [row[0] for row in cursor.fetchall()]
+        if not all_ids:
+            return None # No random things in the database
+        random_id = random.choice(all_ids)
+        cursor = db.execute('SELECT id, description, completed, completion_date, link FROM random_things_to_do WHERE id = ?', (random_id,))
+        thing = cursor.fetchone()
+
     if thing:
         return dict(thing)
     return None
