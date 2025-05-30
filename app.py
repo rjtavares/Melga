@@ -125,8 +125,8 @@ def toggle_task(task_id):
 
 @app.route('/delete/<int:task_id>', methods=['DELETE'])
 def remove_task(task_id):
-    delete_task(task_id)
-    flash('Task deleted.', 'info')
+    give_up_task(task_id)
+    flash('Task given up.', 'info')
 
     # Return the updated task list partial for HTMX
     return make_task_list()

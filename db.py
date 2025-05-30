@@ -164,7 +164,7 @@ def get_current_goal():
 
 def get_tasks(flask=True):
     db = get_db(flask=flask)
-    cursor = db.execute('SELECT id, description, due_date, completed, goal_id, completion_date, next_action, priority FROM tasks ORDER BY due_date ASC')
+    cursor = db.execute('SELECT id, description, due_date, completed, goal_id, completion_date, next_action, priority FROM tasks WHERE give_up = 0 OR give_up IS NULL ORDER BY due_date ASC')
     tasks_raw = cursor.fetchall()
 
     tasks = []
@@ -278,6 +278,13 @@ def insert_action(task_id, action_description, action_date):
 def delete_task(task_id):
     db = get_db()
     db.execute('DELETE FROM tasks WHERE id = ?', (task_id,))
+    db.commit()
+    return True
+
+def give_up_task(task_id):
+    db = get_db()
+    # Set the give_up flag to True and clear the due_date
+    db.execute('UPDATE tasks SET give_up = 1 WHERE id = ?', (task_id,))
     db.commit()
     return True
 
