@@ -11,6 +11,8 @@ CREATE TABLE tasks (
     next_action TEXT,
     goal_id INTEGER,
     priority INTEGER,
+    give_up BOOLEAN NOT NULL DEFAULT 0, -- 0 for false, 1 for true
+    created_date DATE NOT NULL,
     FOREIGN KEY (goal_id) REFERENCES goals(id)
 );
 

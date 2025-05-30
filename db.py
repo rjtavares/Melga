@@ -350,10 +350,12 @@ def insert_task(description, due_date, goal_id=None):
     # Ensure due_date is in database format
     if isinstance(due_date, date):
         due_date = get_db_date(due_date)
-        
+
+    created_date = get_db_date()  # Use today's date as created date    
+    
     db.execute(
-        'INSERT INTO tasks (description, due_date, goal_id) VALUES (?, ?, ?)',
-        (description, due_date, goal_id)
+        'INSERT INTO tasks (description, due_date, goal_id, created_date) VALUES (?, ?, ?, ?)',
+        (description, due_date, goal_id, created_date)
     )
     
     db.commit()
