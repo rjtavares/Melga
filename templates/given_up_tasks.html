@@ -1,33 +1,106 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Given Up Tasks - Melga</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon-16x16.png') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}">
 </head>
 <body>
     <main class="container">
-        <h2>Given Up Tasks</h2>
-        <a href="{{ url_for('index') }}">← Back to Home</a>
-        {% if tasks %}
-            <ul class="task-list">
-                {% for task in tasks %}
-                    <li class="card">
-                        <div>
-                            <strong>{{ task.description }}</strong>
-                            {% if task.due_date %}
-                                <span class="due-date">Due: {{ task.due_date }}</span>
-                            {% endif %}
-                        </div>
-                        {% if task.given_up_date %}
-                            <div class="given-up-date">Given up on: {{ task.given_up_date }}</div>
-                        {% endif %}
-                    </li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <p>No tasks have been given up.</p>
-        {% endif %}
+        <article>
+            <header>
+                <h1>Given Up Tasks</h1>
+                <a href="{{ url_for('index') }}" class="back-link">← Back to Home</a>
+            </header>
+
+            <!-- Flash Messages -->
+            <div id="flash-messages-container">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        <ul class="flash-messages">
+                        {% for category, message in messages %}
+                            <li class="{{ category }}">{{ message }}</li>
+                        {% endfor %}
+                        </ul>
+                    {% endif %}
+                {% endwith %}
+            </div>
+
+            <!-- Given Up Tasks List -->
+            {% if tasks %}
+                <ul class="task-list">
+                    {% for task in tasks %}
+                        <li class="card">
+                            <div class="task-info">
+                                <div class="task-header">
+                                    <strong class="task-description">{{ task.description }}</strong>
+                                    {% if task.due_date %}
+                                        <span class="due-date">Due: {{ task.due_date }}</span>
+                                    {% endif %}
+                                </div>
+                                {% if task.given_up_date %}
+                                    <div class="given-up-date">Given up on: {{ task.given_up_date }}</div>
+                                {% endif %}
+                                {% if task.goal_id %}
+                                    <div class="goal-link">Linked to Goal</div>
+                                {% endif %}
+                            </div>
+                            <div class="task-actions">
+                                <a href="/task/{{ task.id }}" class="btn view-btn" title="View Task History">
+                                    History
+                                </a>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>No tasks have been given up.</p>
+            {% endif %}
+        </article>
     </main>
+
+    <!-- Modal Container -->
+    <div id="modal-container"></div>
+
+    <script>
+        // Handle flash messages via HTMX events
+        document.body.addEventListener('showFlash', function(evt) {
+            // Fetch and display flash messages
+            htmx.ajax('GET', '/flash-messages', {target: '#flash-messages-container'});
+        });
+
+        // Handle modal events
+        document.body.addEventListener('htmx:afterSwap', function(evt) {
+            if (evt.detail.target.id === 'modal-container' && evt.detail.target.innerHTML.trim() !== '') {
+                document.getElementById('modal-container').classList.add('show');
+            }
+        });
+
+        // Close modal when clicking outside content
+        document.getElementById('modal-container').addEventListener('click', function(evt) {
+            if (evt.target === this) {
+                closeModal();
+            }
+        });
+
+        // Function to close modal
+        function closeModal() {
+            const modal = document.getElementById('modal-container');
+            modal.classList.remove('show');
+            setTimeout(() => {
+                if (!modal.classList.contains('show')) {
+                    modal.innerHTML = '';
+                }
+            }, 300);
+        }
+    </script>
 </body>
 </html>
