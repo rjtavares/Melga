@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Given Up Tasks - Melga</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <main class="container">
+        <h2>Given Up Tasks</h2>
+        <a href="{{ url_for('index') }}">← Back to Home</a>
+        {% if tasks %}
+            <ul class="task-list">
+                {% for task in tasks %}
+                    <li class="card">
+                        <div>
+                            <strong>{{ task.description }}</strong>
+                            {% if task.due_date %}
+                                <span class="due-date">Due: {{ task.due_date }}</span>
+                            {% endif %}
+                        </div>
+                        {% if task.given_up_date %}
+                            <div class="given-up-date">Given up on: {{ task.given_up_date }}</div>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No tasks have been given up.</p>
+        {% endif %}
+    </main>
+</body>
+</html>

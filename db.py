@@ -162,9 +162,13 @@ def get_current_goal():
         return dict(goal)
     return None
 
-def get_tasks(flask=True):
+def get_tasks(flask=True, given_up=False):
     db = get_db(flask=flask)
-    cursor = db.execute('SELECT id, description, due_date, completed, goal_id, completion_date, next_action, priority FROM tasks WHERE give_up = 0 OR give_up IS NULL ORDER BY due_date ASC')
+    if given_up:
+        cursor = db.execute('SELECT id, description, due_date, completed, goal_id, completion_date, next_action, priority FROM tasks WHERE give_up = 1 ORDER BY due_date ASC')
+    else:
+        cursor = db.execute('SELECT id, description, due_date, completed, goal_id, completion_date, next_action, priority FROM tasks WHERE give_up = 0 OR give_up IS NULL ORDER BY due_date ASC')
+
     tasks_raw = cursor.fetchall()
 
     tasks = []

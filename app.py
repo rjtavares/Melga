@@ -644,6 +644,13 @@ def delete_random_thing_route(thing_id):
     return redirect(url_for('view_random_things'))
 
 
+@app.route('/tasks/given-up')
+def view_given_up_tasks():
+    """Show a page listing all tasks marked as given up."""
+    given_up_tasks = get_tasks(given_up=True)
+    return render_template('given_up_tasks.html', tasks=given_up_tasks)
+
+
 if __name__ == '__main__':
     debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true' # <-- Change this line
     app.run(debug=debug_mode, port=5001) # debug=True for development
