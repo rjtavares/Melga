@@ -52,8 +52,16 @@ def authenticate_calendar(credentials_file='credentials.json'):
     # If we don't have valid credentials, start the OAuth flow
     if not creds or not creds.valid:
         try:
-            flow = InstalledAppFlow.from_client_secrets_file(credentials_file, SCOPES)
-            creds = flow.run_local_server(port=0)
+            flow = InstalledAppFlow.from_client_secrets_file(
+                credentials_file, 
+                SCOPES
+            )
+            # Move the parameters to run_local_server
+            creds = flow.run_local_server(
+                port=0,
+                access_type='offline',
+                prompt='consent'  # Forces a refresh token to be generated
+            )
             
             # Save the new credentials
             with open(token_file, 'wb') as token:
