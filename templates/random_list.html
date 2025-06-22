@@ -1,17 +1,9 @@
-<!DOCTYPE html>
-<html lang="en" data-theme="light">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Random Things To Do - Melga</title>
+{% extends "base.html" %}
+
+{% block title %}Random Things To Do - Melga{% endblock %}
+
+{% block head %}
     <script src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
-    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32x32.png') }}">
-    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon-16x16.png') }}">
-    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
-    <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}">
     <style>
         .random-things-container {
             max-width: 800px;
@@ -145,14 +137,14 @@
             color: var(--muted-color);
         }
     </style>
-</head>
-<body>
-    <main class="random-things-container">
+{% endblock %}
+
+{% block content %}
+    <div class="random-things-container">
         <div class="random-header">
             <h1>Random Things To Do</h1>
             <div class="random-actions">
-                <a href="/" class="back-button">Back to Tasks</a>
-                <a href="/random/new" class="add-random-button">Add Random Thing</a>
+                <a href="{{ url_for('new_random_thing') }}" class="btn">Add Random Thing</a>
             </div>
         </div>
 
@@ -230,7 +222,7 @@
                 </div>
             {% endif %}
         </div>
-    </main>
+    </div>
 
     <!-- JavaScript for HTMX Event Handlers -->
     <script>
@@ -246,5 +238,4 @@
             htmx.ajax('GET', '/random/view', {target: 'body'});
         });
     </script>
-</body>
-</html>
+{% endblock %}
