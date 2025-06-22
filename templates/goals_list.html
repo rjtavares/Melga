@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+    <h2>Goals</h2>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Description</th>
+                <th>Created Date</th>
+                <th>Target Date</th>
+                <th>Completed</th>
+                <th>Completion Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for goal in goals %}
+            <tr>
+                <td>{{ goal.description }}</td>
+                <td>{{ goal.created_date }}</td>
+                <td>{{ goal.target_date }}</td>
+                <td>{% if goal.completed %}Yes{% else %}No{% endif %}</td>
+                <td>{{ goal.completion_date or '' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

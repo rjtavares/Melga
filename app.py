@@ -651,6 +651,13 @@ def view_given_up_tasks():
     return render_template('given_up_tasks.html', tasks=given_up_tasks)
 
 
+@app.route('/goals')
+def view_goals():
+    db = get_db()
+    cur = db.execute('SELECT id, description, created_date, target_date, completed, completion_date FROM goals ORDER BY created_date DESC')
+    goals = [dict(id=row['id'], description=row['description'], created_date=row['created_date'], target_date=row['target_date'], completed=row['completed'], completion_date=row['completion_date']) for row in cur.fetchall()]
+    return render_template('goals_list.html', goals=goals)
+
 if __name__ == '__main__':
     debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true' # <-- Change this line
     app.run(debug=debug_mode, port=5001) # debug=True for development
