@@ -16,6 +16,51 @@ body {
     padding: 0.5rem;
 }
 
+header.container {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--info);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    margin-bottom: 1rem;
+    border-radius: 0 0 0.75rem 0.75rem;
+    padding-top: 0.2rem;
+    padding-bottom: 0.2rem;
+}
+
+header.container nav ul {
+    display: flex;
+    align-items: center;
+    gap: 1.2rem;
+    margin: 0;
+    padding: 0 0.5rem;
+    list-style: none;
+}
+
+header.container nav ul:first-child {
+    gap: 0.5rem;
+}
+
+header.container nav ul li strong {
+    color: white;
+    font-size: 1.2rem;
+    letter-spacing: 0.04em;
+}
+
+header.container nav a {
+    color: #fff;
+    font-weight: 500;
+    text-decoration: none;
+    transition: color 0.2s;
+    padding: 0.2rem 0.5rem;
+    border-radius: 0.3rem;
+}
+
+header.container nav a:hover {
+    background: #2d3950;
+    color: #ffd86b;
+}
+
 main.container {
     padding: 0;
 }

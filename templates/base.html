@@ -10,10 +10,22 @@
     {% block head %}{% endblock %}
 </head>
 <body>
-    <main class="container">
+    <!-- Site-wide navigation bar -->
+    <header class="container">
         <nav>
-            <a href="{{ url_for('index') }}" class="secondary">← Back to Home</a>
+            <ul>
+                <li><img src="{{ url_for('static', filename='favicon.ico') }}" alt="Melga Icon" width="24" height="24"> <strong>Melga</strong></li>
+            </ul>
+            <ul>
+                <li><a href="{{ url_for('index') }}">Tasks</a></li>
+                <li><a href="{{ url_for('view_goals') }}">Goals</a></li>
+                <li><a href="{{ url_for('view_notes') }}">Notes</a></li>
+                <li><a href="{{ url_for('view_random_things') }}">Random Things</a></li>
+            </ul>
         </nav>
+    </header>
+
+    <main class="container">
         {% block content %}{% endblock %}
     </main>
 </body>
