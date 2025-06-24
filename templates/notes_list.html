@@ -10,14 +10,7 @@
             margin: 0 auto;
             padding: 1rem;
         }
-        
-        .notes-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-        
+                
         .back-button {
             display: inline-block;
             padding: 0.5rem 1rem;
@@ -71,13 +64,7 @@
             transform: translateY(-1px);
             box-shadow: 0 2px 6px rgba(0,0,0,0.1);
         }
-        
-        .note-header {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 0.5rem;
-        }
-        
+                
         .note-title {
             font-weight: bold;
             font-size: 1.1rem;
@@ -144,7 +131,7 @@
 
 {% block content %}
     <div class="notes-container">
-        <div class="notes-header">
+        <div class="page-header">
             <h1>Notes</h1>
             <div class="notes-actions">
                 <a href="{{ url_for('new_note') }}" class="btn">Add Note</a>

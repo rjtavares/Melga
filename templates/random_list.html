@@ -11,13 +11,6 @@
             padding: 1rem;
         }
         
-        .random-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-        
         .back-button {
             display: inline-block;
             padding: 0.5rem 1rem;
@@ -141,7 +134,7 @@
 
 {% block content %}
     <div class="random-things-container">
-        <div class="random-header">
+        <div class="page-header">
             <h1>Random Things To Do</h1>
             <div class="random-actions">
                 <a href="{{ url_for('new_random_thing') }}" class="btn">Add Random Thing</a>
