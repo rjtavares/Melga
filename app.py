@@ -658,6 +658,44 @@ def view_goals():
     goals = [dict(id=row['id'], description=row['description'], created_date=row['created_date'], target_date=row['target_date'], completed=row['completed'], completion_date=row['completion_date']) for row in cur.fetchall()]
     return render_template('goals_list.html', goals=goals)
 
+# --- Habits Routes ---
+
+@app.route('/habits')
+def view_habits():
+    """Route to view all habits."""
+    habits = get_habits()
+    return render_template('habits_list.html', habits=habits)
+
+@app.route('/habits/<int:habit_id>')
+def view_habit(habit_id):
+    """Route to view a specific habit and its tasks."""
+    habit = get_habit(habit_id)
+    if not habit:
+        flash('Habit not found.', 'error')
+        return redirect(url_for('view_habits'))
+    
+    tasks = get_tasks_by_habit(habit_id)
+    return render_template('habit_view.html', habit=habit, tasks=tasks)
+
+@app.route('/habits/new', methods=['GET', 'POST'])
+def new_habit():
+    """Route to add a new habit."""
+    if request.method == 'POST':
+        description = request.form.get('description')
+        periodicity = request.form.get('periodicity')
+        
+        if not description or not periodicity:
+            flash('Description and periodicity are required!', 'error')
+            return redirect(url_for('new_habit'))
+        
+        today = date.today()
+        insert_habit(description, today, periodicity)
+        
+        flash('Habit added successfully!', 'success')
+        return redirect(url_for('view_habits'))
+    
+    return render_template('habits_new.html')
+
 if __name__ == '__main__':
     debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true' # <-- Change this line
     app.run(debug=debug_mode, port=5001) # debug=True for development

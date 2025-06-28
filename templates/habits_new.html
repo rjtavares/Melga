@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}Add Habit{% endblock %}
+
+{% block content %}
+    <h1>Add a New Habit</h1>
+    <form method="POST">
+        <div>
+            <label for="description">Description:</label>
+            <input type="text" id="description" name="description" required>
+        </div>
+        <div>
+            <label for="periodicity">Periodicity:</label>
+            <select id="periodicity" name="periodicity" required>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+            </select>
+        </div>
+        <button type="submit">Add Habit</button>
+    </form>
+{% endblock %}

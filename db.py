@@ -448,3 +448,34 @@ def delete_random_thing(thing_id):
     db.execute('DELETE FROM random_things_to_do WHERE id = ?', (thing_id,))
     db.commit()
     return True
+
+# --- Habits Functions ---
+
+def get_habits():
+    db = get_db()
+    cursor = db.execute('SELECT id, description, periodicity FROM habits ORDER BY id DESC')
+    return [dict(row) for row in cursor.fetchall()]
+
+def get_habit(habit_id):
+    db = get_db()
+    cursor = db.execute('SELECT id, description, periodicity FROM habits WHERE id = ?', (habit_id,))
+    habit = cursor.fetchone()
+    if habit:
+        return dict(habit)
+    return None
+
+def get_tasks_by_habit(habit_id):
+    db = get_db()
+    cursor = db.execute('SELECT id, description, created_date, completion_date FROM tasks WHERE habit_id = ? ORDER BY created_date DESC', (habit_id,))
+    return [dict(row) for row in cursor.fetchall()]
+
+def insert_habit(description, created_date, periodicity):
+    db = get_db()
+    if isinstance(created_date, date):
+        created_date = get_db_date(created_date)
+    db.execute(
+        'INSERT INTO habits (description, created_date, periodicity) VALUES (?, ?, ?)',
+        (description, created_date, periodicity)
+    )
+    db.commit()
+    return True

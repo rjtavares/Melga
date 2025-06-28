@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}Habit Details{% endblock %}
+
+{% block content %}
+    <h1>Habit: {{ habit.description }}</h1>
+    <p>Periodicity: {{ habit.periodicity }}</p>
+
+    <h2>Tasks for this Habit</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Description</th>
+                <th>Created Date</th>
+                <th>Completion Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for task in tasks %}
+                <tr>
+                    <td>{{ task.description }}</td>
+                    <td>{{ task.created_date }}</td>
+                    <td>{{ task.completion_date if task.completion_date else 'Not completed' }}</td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="3">No tasks for this habit yet.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

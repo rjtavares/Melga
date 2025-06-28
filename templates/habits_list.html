@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}Habits{% endblock %}
+
+{% block content %}
+    <h1>Habits</h1>
+    <a href="{{ url_for('new_habit') }}" role="button">Add Habit</a>
+    <ul>
+        {% for habit in habits %}
+            <li>
+                <a href="{{ url_for('view_habit', habit_id=habit.id) }}">{{ habit.description }}</a>
+                (Periodicity: {{ habit.periodicity }})
+            </li>
+        {% else %}
+            <li>No habits yet.</li>
+        {% endfor %}
+    </ul>
+{% endblock %}
