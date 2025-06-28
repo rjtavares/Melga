@@ -10,3 +10,9 @@ credentials.json
 events_test.py
 token.pickle
 notifications.log
+
+# Database backups
+*.db.bak
+
+# Migration scripts
+migration.py
