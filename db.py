@@ -43,17 +43,15 @@ def get_display_date(date_str, short=False):
     format_str = DATE_DISPLAY_SHORT if short else DATE_DISPLAY_FORMAT
     return format_date(date_obj, format_str)
 
-def get_db(flask=True):
-    if flask:
+def get_db():
+    try:
         db = getattr(g, '_database', None)
         if db is None:
             db = g._database = sqlite3.connect(DATABASE)
-            db.row_factory = sqlite3.Row # Return rows as dictionary-like objects
-        return db
-    else:
+    except RuntimeError:
         db = sqlite3.connect(DATABASE)
-        db.row_factory = sqlite3.Row
-        return db
+    db.row_factory = sqlite3.Row
+    return db
 
 def get_task(task_id):
     db = get_db()
@@ -68,7 +66,7 @@ def get_task(task_id):
     return task
 
 def get_overdue_tasks():
-    db = get_db(flask=False)
+    db = get_db()
     cursor = db.execute('SELECT * FROM tasks WHERE completed = 0 AND due_date < CURRENT_DATE')
     tasks = [dict(x) for x in cursor.fetchall()]
     return tasks
@@ -79,11 +77,11 @@ def set_last_notification(task, notification_date=None):
     """
     today = date.today()
     
-    db = get_db(flask=False)
+    db = get_db()
     db.execute('UPDATE tasks SET last_notification = ? WHERE id = ?', (notification_date or today, task['id']))
     db.commit()
 
-def get_activity_data(days=21, flask=True):
+def get_activity_data(days=21):
     """
     Get activity data for the past 21 days for GitHub-style activity graph
     Returns a dictionary with:
@@ -94,7 +92,7 @@ def get_activity_data(days=21, flask=True):
     today = date.today()
     
     # Get database connection
-    db = get_db(flask=flask)
+    db = get_db()
     
     # Get task actions for the period
     start_date = get_db_date(today - timedelta(days=days-1))
@@ -162,8 +160,8 @@ def get_current_goal():
         return dict(goal)
     return None
 
-def get_tasks(flask=True, given_up=False):
-    db = get_db(flask=flask)
+def get_tasks(given_up=False):
+    db = get_db()
     if given_up:
         cursor = db.execute('SELECT id, description, due_date, completed, goal_id, completion_date, next_action, priority FROM tasks WHERE give_up = 1 ORDER BY due_date ASC')
     else:
@@ -451,14 +449,15 @@ def delete_random_thing(thing_id):
 
 # --- Habits Functions ---
 
-def get_habits():
-    db = get_db()
-    cursor = db.execute('SELECT id, description, periodicity FROM habits ORDER BY id DESC')
+def get_habits(db=None):
+    if not db:
+        db = get_db()
+    cursor = db.execute('SELECT id, description, created_date, periodicity FROM habits ORDER BY id DESC')
     return [dict(row) for row in cursor.fetchall()]
 
 def get_habit(habit_id):
     db = get_db()
-    cursor = db.execute('SELECT id, description, periodicity FROM habits WHERE id = ?', (habit_id,))
+    cursor = db.execute('SELECT id, description, created_date, periodicity FROM habits WHERE id = ?', (habit_id,))
     habit = cursor.fetchone()
     if habit:
         return dict(habit)
@@ -479,3 +478,46 @@ def insert_habit(description, created_date, periodicity):
     )
     db.commit()
     return True
+
+def calculate_last_expected_habit_due_date(last_completion_date, periodicity):
+    today = date.today()
+    if last_completion_date is None:
+        last_expected_date = today
+    else:
+        last_expected_date = parse_date(last_completion_date)
+        if periodicity == 'daily':
+            while last_expected_date <= today:
+                last_expected_date += timedelta(days=1)
+        elif periodicity == 'weekly':
+            while last_expected_date <= today:
+                last_expected_date += timedelta(weeks=1)
+        elif periodicity == 'monthly':
+            while last_expected_date <= today:
+                last_expected_date += timedelta(days=30)
+    return last_expected_date
+
+def get_habits_without_tasks():
+    db = get_db()
+    habits_without_tasks = []
+
+    # Get all habits
+    habits = get_habits()
+
+    for habit in habits:
+        habit_id = habit['id']
+        periodicity = habit['periodicity']
+        
+        # Check for active tasks for this habit
+        cursor = db.execute('SELECT COUNT(*) FROM tasks WHERE habit_id = ? AND completed = 0', (habit_id,))
+        active_tasks_count = cursor.fetchone()[0]
+
+        if active_tasks_count == 0:
+            # Check date of last completed task for this habit
+            cursor = db.execute('SELECT MAX(completion_date) FROM tasks WHERE habit_id = ? AND completed = 1', (habit_id,))
+            last_completion_date = cursor.fetchone()[0]
+            
+            due_date_for_task = calculate_last_expected_habit_due_date(last_completion_date, periodicity)
+            habit['due_date_for_task'] = due_date_for_task
+            habits_without_tasks.append(habit)
+    
+    return habits_without_tasks

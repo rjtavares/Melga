@@ -1,6 +1,6 @@
 from notifications import send_notification
 from events import create_event
-from db import get_overdue_tasks
+from db import get_habits_without_tasks, get_overdue_tasks, insert_task
 import datetime
 
 def get_event_time(hour: float):
@@ -15,7 +15,19 @@ def get_event_time(hour: float):
     )   
 
 def main():
-    """Run the notifications and create events for overdue tasks."""
+    """
+    Create tasks for overdue habits.
+    Run the notifications and create events for overdue tasks.
+    """
+    tasks_created = 0
+    habits_without_tasks = get_habits_without_tasks()
+    for habit in habits_without_tasks:
+        insert_task(
+            description = habit['description'],
+            due_date = habit['due_date_for_task']
+            )
+        tasks_created += 1
+
     overdue_tasks = get_overdue_tasks()
     has_priority_tasks = any(task['priority'] for task in overdue_tasks)
 
@@ -42,8 +54,8 @@ def main():
                     print(f"Failed to create event for task {task['id']} at {event_time_2}")
         
 
+    print(f"Successfully created {tasks_created} task(s) for habits without tasks.")
     print(f"Successfully sent {notifications_sent} notification(s) for overdue tasks out of {len(overdue_tasks)} tasks.")
     print(f"Successfully created {events_created} event(s) for overdue tasks out of {len(overdue_tasks)} tasks.")
-
 if __name__ == "__main__":
     exit(main())
