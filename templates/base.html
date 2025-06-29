@@ -16,15 +16,31 @@
             <ul>
                 <li><img src="{{ url_for('static', filename='favicon.ico') }}" alt="Melga Icon" width="24" height="24"> <strong>Melga</strong></li>
             </ul>
-            <ul>
+            <ul class="nav-links">
                 <li><a href="{{ url_for('index') }}">Tasks</a></li>
                 <li><a href="{{ url_for('view_goals') }}">Goals</a></li>
                 <li><a href="{{ url_for('view_notes') }}">Notes</a></li>
                 <li><a href="{{ url_for('view_habits') }}">Habits</a></li>
                 <li><a href="{{ url_for('view_random_things') }}">Random Things</a></li>
             </ul>
+            <a href="#" class="nav-toggle">
+                <svg viewBox="0 0 100 80" width="40" height="40">
+                  <rect width="100" height="20"></rect>
+                  <rect y="30" width="100" height="20"></rect>
+                  <rect y="60" width="100" height="20"></rect>
+                </svg>
+            </a>
         </nav>
     </header>
+
+    <script>
+        const navToggle = document.querySelector('.nav-toggle');
+        const navLinks = document.querySelector('.nav-links');
+
+        navToggle.addEventListener('click', () => {
+            navLinks.classList.toggle('active');
+        });
+    </script>
 
     <main class="container">
         {% block content %}{% endblock %}

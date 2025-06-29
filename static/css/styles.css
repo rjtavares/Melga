@@ -35,10 +35,10 @@ header.container {
     padding-bottom: 0.2rem;
 }
 
-header.container nav ul {
+header.container nav > ul:not(.nav-links) {
     display: flex;
     align-items: center;
-    gap: 1.2rem;
+    gap: 2rem;
     margin: 0;
     padding: 0 0.5rem;
     list-style: none;
@@ -807,4 +807,78 @@ h1 {
 .refresh-btn {
     background-color: var(--primary-focus);
     color: white;
+}
+
+/* Responsive Nav Bar */
+.nav-toggle {
+    display: none;
+    fill: white;
+}
+
+.nav-links {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background-color: var(--info);
+    display: none;
+}
+
+.nav-links.active {
+    display: flex;
+}
+
+.nav-links li {
+    margin: 0 0.25rem;
+}
+
+@media (max-width: 768px) {
+    header.container nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .nav-toggle {
+        display: block;
+    }
+
+    header.container nav ul:not(.nav-links) {
+        flex-grow: 1;
+    }
+
+    .nav-links {
+        display: none;
+        width: 100%;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        background-color: var(--info);
+        flex-direction: column;
+    }
+
+    .nav-links.active {
+        display: flex;
+    }
+
+    header.container nav ul.nav-links li {
+        text-align: center;
+        width: 100%;
+    }
+}
+
+@media (min-width: 769px) {
+    .nav-links {
+        display: flex !important;
+        flex-direction: row;
+        position: static;
+        width: auto;
+        background: none;
+    }
+
+    .nav-toggle {
+        display: none !important;
+    }
 }
