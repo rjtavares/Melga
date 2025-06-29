@@ -24,7 +24,8 @@ def main():
     for habit in habits_without_tasks:
         insert_task(
             description = habit['description'],
-            due_date = habit['due_date_for_task']
+            due_date = habit['due_date_for_task'],
+            habit_id = habit['id']
             )
         tasks_created += 1
 

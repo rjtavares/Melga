@@ -354,7 +354,7 @@ def insert_note(title, note_content, note_type, created_date):
     db.commit()
     return True
 
-def insert_task(description, due_date, goal_id=None):
+def insert_task(description, due_date, goal_id=None, habit_id=None):
     db = get_db()
     # Ensure due_date is in database format
     if isinstance(due_date, date):
@@ -363,8 +363,8 @@ def insert_task(description, due_date, goal_id=None):
     created_date = get_db_date()  # Use today's date as created date    
     
     db.execute(
-        'INSERT INTO tasks (description, due_date, goal_id, created_date) VALUES (?, ?, ?, ?)',
-        (description, due_date, goal_id, created_date)
+        'INSERT INTO tasks (description, due_date, goal_id, habit_id, created_date) VALUES (?, ?, ?, ?, ?)',
+        (description, due_date, goal_id, habit_id, created_date)
     )
     
     db.commit()
