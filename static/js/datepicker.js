@@ -9,14 +9,6 @@ document.addEventListener('DOMContentLoaded', function() {
             calendar.style.display = 'block';
         });
 
-        input.addEventListener('blur', function(e) {
-            setTimeout(() => {
-                if (!calendar.contains(document.activeElement)) {
-                    calendar.style.display = 'none';
-                }
-            }, 0);
-        });
-
         function renderCalendar(calendar, date, input) {
             calendar.innerHTML = '';
 
@@ -81,6 +73,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             calendar.appendChild(daysContainer);
+
         }
     });
 });
