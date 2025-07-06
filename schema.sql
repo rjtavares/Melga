@@ -18,7 +18,7 @@ CREATE TABLE habits (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     description TEXT NOT NULL,
     created_date DATE NOT NULL,
-    periodicity TEXT NOT NULL -- e.g., 'daily', 'weekly', 'monthly'
+    periodicity TEXT NOT NULL -- e.g., 'weekly', 'biweekly', 'monthly', 'quarterly', 'yearly'
 );
 
 CREATE TABLE tasks (

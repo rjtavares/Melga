@@ -494,15 +494,21 @@ def calculate_last_expected_habit_due_date(last_completion_date, periodicity):
         last_expected_date = today
     else:
         last_expected_date = parse_date(last_completion_date)
-        if periodicity == 'daily':
+        if periodicity == 'weekly':
             while last_expected_date <= today:
-                last_expected_date += timedelta(days=1)
-        elif periodicity == 'weekly':
+                last_expected_date += timedelta(days=7)
+        elif periodicity == 'biweekly':
             while last_expected_date <= today:
-                last_expected_date += timedelta(weeks=1)
+                last_expected_date += timedelta(days=14)
         elif periodicity == 'monthly':
             while last_expected_date <= today:
                 last_expected_date += timedelta(days=30)
+        elif periodicity == 'quarterly':
+            while last_expected_date <= today:
+                last_expected_date += timedelta(days=90)
+        elif periodicity == 'yearly':
+            while last_expected_date <= today:
+                last_expected_date += timedelta(days=365)
     return last_expected_date
 
 def get_habits_without_tasks():
